@@ -14,7 +14,7 @@ git status
 echo.
 echo [2/3] Adicionando e commitando...
 git add .
-git commit -m "fix: sync upsert e auto-auth mobile"
+git commit -m "fix: anti-sobrescrita em sync, envio de projetos, atalho desktop unico e pwa standalone"
 echo.
 echo [3/3] Enviando para o GitHub...
 git push -u origin main --force

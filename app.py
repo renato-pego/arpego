@@ -981,6 +981,17 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                 conn.row_factory = sqlite3.Row
                 cur = conn.cursor()
                 
+                # Sincroniza projetos enviados pelo cliente
+                client_projs = data.get('projetos', [])
+                for cp in client_projs:
+                    p_name = cp.get('nome', '').strip()
+                    p_tipo = cp.get('tipo', 'Profissional').strip()
+                    if p_name:
+                        cur.execute("SELECT id FROM tb_projetos WHERE id_usuario = ? AND LOWER(nome) = LOWER(?);", (uid, p_name))
+                        if not cur.fetchone():
+                            cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
+                                        (uid, p_name, p_name[:6].upper(), p_tipo))
+
                 applied = 0
                 for item in changes:
                     action = item.get('action')
@@ -1056,8 +1067,37 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                                 else:
                                     cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);", (uid, proj_in, proj_in[:6].upper(), tipo))
                                     projeto_id = cur.lastrowid
-                            cur.execute("UPDATE tb_tarefas SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?, observacoes = ?, recorrencia_dias = ? WHERE id_usuario = ? AND codigo = ?;", (tit, projeto_id, tipo, prio, st, obs, rec_d, uid, cod))
-                            if cur.rowcount == 0:
+                            else:
+                                cur.execute("SELECT id FROM tb_projetos WHERE id_usuario = ? ORDER BY id ASC LIMIT 1;", (uid,))
+                                proj_f = cur.fetchone()
+                                if proj_f:
+                                    projeto_id = proj_f[0]
+
+                            cur.execute("SELECT id, titulo FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
+                            row = cur.fetchone()
+                            if row:
+                                ex_id, ex_tit = row[0], row[1]
+                                # Prevenção contra colisão de códigos gerados offline por nós diferentes
+                                if ex_tit and tit and ex_tit.strip().lower() != tit.strip().lower():
+                                    if tipo == 'Pessoal':
+                                        cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
+                                        last = cur.fetchone()
+                                        new_cod = f"#P{int(re.sub(r'\\D', '', last[0]) or 0) + 1:02d}" if last else "#P01"
+                                    else:
+                                        cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo NOT LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
+                                        last = cur.fetchone()
+                                        new_cod = f"#{int(re.sub(r'\\D', '', last[0]) or 0) + 1:03d}" if last else "#001"
+                                    cur.execute("""
+                                    INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                                    """, (uid, new_cod, projeto_id, tit, tipo, prio, st, obs, rec_d))
+                                else:
+                                    cur.execute("""
+                                    UPDATE tb_tarefas 
+                                    SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?, observacoes = ?, recorrencia_dias = ? 
+                                    WHERE id = ?;
+                                    """, (tit, projeto_id, tipo, prio, st, obs, rec_d, ex_id))
+                            else:
                                 cur.execute("""
                                 INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias)
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);

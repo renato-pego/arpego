@@ -360,6 +360,10 @@ def sync_with_cloud(verbose=False):
                 "recorrencia_dias": r[7] or 0
             })
 
+        # Coleta projetos locais para a Nuvem conhecer todos os projetos (ex: Carro)
+        cur.execute("SELECT nome, tipo FROM tb_projetos;")
+        local_projs = [{"nome": r[0], "tipo": r[1]} for r in cur.fetchall()]
+
         # Coleta domínios locais para sincronizar com a nuvem
         cur.execute("SELECT nome, cor, borda, bg, ordem FROM tb_status WHERE ativo = 1;")
         local_status = [{"nome": r[0], "cor": r[1], "borda": r[2], "bg": r[3], "ordem": r[4]} for r in cur.fetchall()]
@@ -369,6 +373,7 @@ def sync_with_cloud(verbose=False):
         payload = {
             "client_id": "windows-desktop-baseforte",
             "changes": local_changes,
+            "projetos": local_projs,
             "dominios": {
                 "status": local_status,
                 "prioridades": local_prio
@@ -431,19 +436,42 @@ def sync_with_cloud(verbose=False):
 
             proj_id = proj_map.get(proj_nome, 1)
 
-            cur.execute("SELECT id FROM tb_tarefas WHERE codigo = ?;", (cod,))
-            if cur.fetchone():
-                cur.execute("""
-                UPDATE tb_tarefas
-                SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?,
-                    observacoes = ?, data_conclusao = ?, recorrencia_dias = ?, data_recorrencia = ?, sync_pendente = 0
-                WHERE codigo = ?;
-                """, (tit, proj_id, tipo, prio, st, obs, d_conc, rec_d, d_rec, cod))
+            cur.execute("SELECT id, titulo, sync_pendente FROM tb_tarefas WHERE codigo = ?;", (cod,))
+            row = cur.fetchone()
+            if row:
+                loc_id, loc_tit, loc_pend = row[0], row[1], row[2]
+                # Se local tinha alteração pendente com título diferente, preserva a local em novo código
+                if loc_pend == 1 and loc_tit and loc_tit.strip().lower() != tit.strip().lower():
+                    if tipo == 'Pessoal':
+                        cur.execute("SELECT codigo FROM tb_tarefas WHERE codigo LIKE '#P%' ORDER BY id DESC;")
+                        l = cur.fetchone()
+                        nxt_cod = f"#P{int(re.sub(r'\\D', '', l[0]) or 0) + 1:02d}" if l else "#P01"
+                    else:
+                        cur.execute("SELECT codigo FROM tb_tarefas WHERE codigo NOT LIKE '#P%' ORDER BY id DESC;")
+                        l = cur.fetchone()
+                        nxt_cod = f"#{int(re.sub(r'\\D', '', l[0]) or 0) + 1:03d}" if l else "#001"
+                    cur.execute("UPDATE tb_tarefas SET codigo = ?, sync_pendente = 1 WHERE id = ?;", (nxt_cod, loc_id))
+                    cur.execute("""
+                    INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, sync_pendente)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+                    """, (cod, proj_id, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec))
+                else:
+                    cur.execute("""
+                    UPDATE tb_tarefas
+                    SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?,
+                        observacoes = ?, data_conclusao = ?, recorrencia_dias = ?, data_recorrencia = ?, sync_pendente = 0
+                    WHERE codigo = ?;
+                    """, (tit, proj_id, tipo, prio, st, obs, d_conc, rec_d, d_rec, cod))
             else:
                 cur.execute("""
                 INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, sync_pendente)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
                 """, (cod, proj_id, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec))
+
+        for c in local_changes:
+            c_cod = c.get("codigo")
+            if c_cod:
+                cur.execute("UPDATE tb_tarefas SET sync_pendente = 0 WHERE codigo = ? AND sync_pendente = 1;", (c_cod,))
 
         conn.commit()
         conn.close()
@@ -1035,8 +1063,15 @@ def start_desktop_gui():
 
 if __name__ == '__main__':
     try:
-        from generate_icon import setup_desktop_shortcut
-        setup_desktop_shortcut()
+        user_desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+        shortcut_file = os.path.join(user_desktop, "ARPego.lnk")
+        dup_shortcut = os.path.join(user_desktop, "Assistente Pessoal - ARPego.lnk")
+        if os.path.exists(dup_shortcut):
+            try: os.remove(dup_shortcut)
+            except Exception: pass
+        if not os.path.exists(shortcut_file):
+            from generate_icon import setup_desktop_shortcut
+            setup_desktop_shortcut()
     except Exception as e:
         log_event(f"Aviso ao configurar atalho: {e}")
 

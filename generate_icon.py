@@ -150,16 +150,8 @@ Sub CreateShortcutIn(sFolder)
         oLink1.WindowStyle = 7
         oLink1.Save
 
-        sLinkFile2 = sFolder & "\\Assistente Pessoal - ARPego.lnk"
-        Set oLink2 = oWS.CreateShortcut(sLinkFile2)
-        oLink2.TargetPath = "{BAT_PATH}"
-        oLink2.WorkingDirectory = "{BASE_DIR}"
-        oLink2.Description = "Assistente Pessoal - ARPego"
-        oLink2.IconLocation = "{ICO_PATH},0"
-        oLink2.WindowStyle = 7
-        oLink2.Save
-
         On Error Resume Next
+        If oFSO.FileExists(sFolder & "\\Assistente Pessoal - ARPego.lnk") Then oFSO.DeleteFile(sFolder & "\\Assistente Pessoal - ARPego.lnk")
         If oFSO.FileExists(sFolder & "\\ARPego - Painel Web.url") Then oFSO.DeleteFile(sFolder & "\\ARPego - Painel Web.url")
         If oFSO.FileExists(sFolder & "\\ARPego - Base Forte (SQL Server).bat") Then oFSO.DeleteFile(sFolder & "\\ARPego - Base Forte (SQL Server).bat")
         If oFSO.FileExists(sFolder & "\\ARPego - Sincronizar Agora.bat") Then oFSO.DeleteFile(sFolder & "\\ARPego - Sincronizar Agora.bat")

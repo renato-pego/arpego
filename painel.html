@@ -280,7 +280,7 @@
       <div id="user-pill" class="user-pill" onclick="promptSwitchUser()" title="Usuário conectado. Clique para trocar ou sair." style="display: none;">
         👤 <span id="user-name-display">Renato</span> <span style="font-size:0.65rem; color:#94a3b8; margin-left:2px;">(Sair)</span>
       </div>
-      <button id="btn-install-pwa" class="btn-install-pwa" onclick="showInstallModal()">📲 Instalar App</button>
+      <button id="btn-install-pwa" class="btn-install-pwa" onclick="showInstallModal()" style="display: none;">📲 Instalar App</button>
       <span style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">☁️ Cloud Live</span>
     </div>
   </header>
@@ -908,6 +908,9 @@
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
+          localStorage.setItem('arpego_pwa_installed', 'true');
+          const btn = document.getElementById('btn-install-pwa');
+          if (btn) btn.style.display = 'none';
           closeInstallModal();
           showToast('✅ Aplicativo instalado com sucesso!');
         }
@@ -1202,25 +1205,42 @@
       }
     }
 
-    // Registro do Service Worker com forçamento de versão v5
+    // Registro do Service Worker com forçamento de versão v6
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=5')
+        navigator.serviceWorker.register('/sw.js?v=6')
           .then(reg => {
             reg.update();
-            console.log('ServiceWorker ativo v5:', reg.scope);
+            console.log('ServiceWorker ativo v6:', reg.scope);
           })
           .catch(err => console.log('ServiceWorker falhou:', err));
       });
     }
 
-    // Captura do evento de Instalação (PWA)
+    // Captura do evento de Instalação (PWA) e detecção de standalone
     let deferredPrompt = null;
+
+    function checkPWAInstallState() {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           window.navigator.standalone === true || 
+                           document.referrer.includes('android-app://');
+      const isInstalled = localStorage.getItem('arpego_pwa_installed') === 'true';
+      const btn = document.getElementById('btn-install-pwa');
+      if (!btn) return;
+      if (isStandalone || isInstalled) {
+        btn.style.display = 'none';
+      } else if (deferredPrompt) {
+        btn.style.display = 'inline-flex';
+      } else {
+        // Se estiver em navegador comum e não for standalone, permite ver o botão de guia
+        btn.style.display = 'inline-flex';
+      }
+    }
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      const btn = document.getElementById('btn-install-pwa');
-      if (btn) btn.style.display = 'inline-flex';
+      checkPWAInstallState();
     });
 
     async function installPWA() {
@@ -1228,12 +1248,13 @@
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
+          localStorage.setItem('arpego_pwa_installed', 'true');
           const btn = document.getElementById('btn-install-pwa');
           if (btn) btn.style.display = 'none';
         }
         deferredPrompt = null;
       } else {
-        alert('Para instalar o app no celular:\n\n📱 Android (Chrome): Toque nos 3 pontos ⋮ e escolha "Instalar aplicativo" ou "Adicionar à tela inicial".\n\n🍎 iPhone (Safari): Toque no ícone de Compartilhar ⎋ e escolha "Adicionar à Tela de Início".');
+        showInstallModal();
       }
     }
 
@@ -1844,6 +1865,7 @@
       } else {
         updateUserUI(user);
       }
+      checkPWAInstallState();
       loadDominios();
       loadTasks();
       loadProjetos();

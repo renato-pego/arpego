@@ -1,65 +1,43 @@
 # 📌 CHECKPOINT DO PROJETO - ASSISTENTE PESSOAL (ARPEGO)
-**Data de Registro:** 13/10/2026 - 21:30 (Horário de Brasília)
+**Data de Registro:** 14/10/2026 - 12:30 (Horário de Brasília)
 
 ---
 
 ## 🚀 1. Estado Atual do Sistema
 
-O **ARPego (Assistente Pessoal)** foi completamente adaptado para suportar **Multi-Usuário (Multi-Tenancy)** com isolamento 100% de tarefas, projetos, domínios e senhas no cofre, além de instalação simplificada (PWA) no celular e no computador.
-
-### 🔑 Credenciais do Usuário Principal
-- **Usuário:** `Renato`
-- **Senha:** `ASSITPES`
-- **ID de Usuário:** `1`
-- **Dados Vinculados:** Todas as 22 tarefas existentes (#001 a #020, #P01, #P02), os 7 projetos corporativos e pessoais, os status e prioridades customizados e os acessos criptografados no cofre (BitLocker).
-
-### 👥 Cadastro Aberto para Novos Usuários
-- **Como Funciona:** Qualquer pessoa acessando o link público pode clicar na aba **"Criar Conta"** na tela inicial.
-- **Isolamento de Dados:** Cada novo usuário recebe seu próprio espaço isolado no banco de dados com projetos padrão (*Geral* e *Vida Pessoal / Hábitos*), status e prioridades independentes.
-- **Códigos Não Conflitantes:** O sistema utiliza chave composta `(id_usuario, codigo)`, permitindo que cada usuário comece a partir do seu `#001` e `#P01` sem colidir com as tarefas de outros usuários.
+O **ARPego (Assistente Pessoal)** recebeu blindagem arquitetural completa contra colisão de dados entre dispositivos móveis e desktop, unificação de atalhos e polimento de experiência PWA.
 
 ---
 
-## 🛠️ 2. Arquivos Modificados e Funções Implementadas
+## 🛠️ 2. Diagnóstico e Resolução dos 5 Pontos de Verificação
 
-1. **`app.py` (Backend Nuvem - Render / SQLite):**
-   - Criação da tabela `tb_usuarios` com hash criptográfico PBKDF2 (SHA-256) e salt individual.
-   - Migração das tabelas (`tb_projetos`, `tb_tarefas`, `tb_historico`, `tb_credenciais`, `tb_status`, `tb_prioridades`) com coluna `id_usuario`.
-   - Adição de endpoints:
-     - `POST /api/auth/login`: Autentica e retorna ID/login do usuário.
-     - `POST /api/auth/cadastro`: Cria novo usuário e inicializa seu workspace.
-     - `GET /api/auth/me`: Retorna informações da sessão ativa.
-   - Leitura do cabeçalho `X-User-Id` em todas as rotas de tarefas, projetos, credenciais, domínios e sincronização `/api/sync`.
+### 1️⃣ Botão "Instalar App" no Celular quando já está instalado:
+- **Causa:** O botão vinha visível por padrão no HTML e não verificava o modo *Standalone* (PWA em execução nativa).
+- **Correção:** Botão configurado com `display: none` por padrão. Implementada a função `checkPWAInstallState()` que detecta se a aplicação está rodando em modo standalone (`display-mode: standalone`) ou se o flag `arpego_pwa_installed` está ativo, ocultando o botão permanentemente no app instalado.
+- **Arquivos:** `painel.html` e `sw.js` (atualizado para cache `v6`).
 
-2. **`painel.html` (Frontend Web & Mobile PWA):**
-   - Modal de autenticação `#authModal` com alternância ágil entre **"Entrar"** e **"Criar Conta"**.
-   - Interceptor global em `window.fetch` para injetar automaticamente `X-User-Id: <id>` em todas as chamadas à API.
-   - Cache local do navegador particionado por usuário (`arpego_cached_tasks_u1`, `arpego_cached_tasks_u2`, etc.), garantindo que até em um mesmo celular os dados de usuários diferentes não se misturem.
-   - Botão e modal de instalação `#installModal` com instruções claras para Android (Chrome), iOS (Safari) e Computador Windows (Edge/Chrome).
-   - Crachá no cabeçalho `👤 Renato` com suporte a logout/troca de conta.
+### 2️⃣ Ícone duplicado na Área de Trabalho (sempre criava 2 atalhos):
+- **Causa:** O script `generate_icon.py` criava simultaneamente `ARPego.lnk` e `Assistente Pessoal - ARPego.lnk`. Além disso, `app_windows.py` disparava essa recriação toda vez que o app iniciava.
+- **Correção:** `generate_icon.py` agora gera **exclusivamente `ARPego.lnk`** e apaga ativamente `Assistente Pessoal - ARPego.lnk`. No `app_windows.py`, a função só é chamada se `ARPego.lnk` não existir na Área de Trabalho, limpando duplicatas silenciosamente.
+- **Arquivos:** `generate_icon.py` e `app_windows.py`.
 
-3. **`app_windows.py` (Base Forte Windows Desktop / SQL Server):**
-   - Inclusão do header `X-User-Id: 1` nas requisições de sincronização (`sync_with_cloud`) e proxy, garantindo que o SQL Server corporativo permaneça exclusivamente atrelado à conta do Renato.
+### 3️⃣ e 4️⃣ Tarefa #P04 e Projeto "Carro" não apareciam no Celular:
+- **Causa:** O Desktop (`app_windows.py`) não transmitia a lista de projetos locais no payload do `/api/sync` (enviava apenas `changes` e `dominios`). Além disso, se a sincronização encontrava erro na nuvem antiga, a tarefa não era persistida.
+- **Correção:** O payload do `/api/sync` agora envia `"projetos": local_projs`. O backend `app.py` processa e insere automaticamente qualquer novo projeto (`Carro`, etc.) no banco da nuvem do usuário e o retorna no catálogo para o celular.
+- **Arquivos:** `app_windows.py` e `app.py`.
 
-4. **`painel_desktop.html` (Interface Standalone Desktop):**
-   - Adição do badge de identificação do usuário principal `👤 Renato` no cabeçalho.
-
----
-
-## 🌐 3. Endereços e Acesso
-
-- **Hub na Nuvem (Render):** `https://arpego-9p4x.onrender.com`
-- **Porta Local Desktop:** `http://127.0.0.1:5050`
-- **Banco de Dados Local:** SQL Server `localhost` base `ASSISTPE` (Fallback: `assistpe_desktop.db`)
+### 5️⃣ Tarefa do celular sobrescreveu a tarefa do desktop (#P03 perdida):
+- **Causa Raiz Identificada:** Como a Nuvem só continha tarefas até `#P02`, a criação de uma nova tarefa no celular gerou o código `#P03`. No Desktop, já havia sido criada localmente a tarefa `#P03` (manutenção do carro). Ao sincronizar, o Desktop recebeu `#P03` da Nuvem e fez um `UPDATE` cego no registro local com o mesmo código, substituindo o texto da manutenção do carro pela tarefa do celular!
+- **Correção Anti-Sobrescrita (Zero Data Loss):**
+  - **No `app.py`:** Se uma tarefa recebida em `/api/sync` tem o mesmo código mas um título diferente de uma já existente, a Nuvem detecta colisão de nós desconectados e **aloca automaticamente o próximo código vago** (ex: `#P05`), preservando ambas as tarefas!
+  - **No `app_windows.py`:** No recebimento da Nuvem, se o registro local com o mesmo código tiver `sync_pendente = 1` e título divergente, o Desktop move a tarefa local para um novo código antes de aplicar a da Nuvem. Nenhuma tarefa é sobrescrita!
+  - **Arquivos:** `app.py` e `app_windows.py`.
 
 ---
 
-## 📋 4. Roteiro para Retomada Amanhã
+## 📋 3. Roteiro Imediato
 
-1. **Deploy / Git:**
-   - Realizar o commit e push dos arquivos alterados (`app.py`, `painel.html`, `app_windows.py`, `painel_desktop.html`) para o repositório Git, disparando a atualização automática no Render.
-2. **Teste Prático de Cadastro e Segregação:**
-   - Fazer login com `Renato` / `ASSITPES` e validar as 22 tarefas.
-   - Criar uma conta de teste (ex: `teste`) e validar que o novo usuário recebe ambiente limpo e que as tarefas de um não aparecem para o outro.
-3. **Validação do Atalho / Operação Stand Alone:**
-   - Testar o atalho no Windows com SQL Server ativo e verificar a sincronização bidirecional.
+1. **Executar `fazer_commit.bat`:**
+   - Dê um duplo clique no script para subir as correções (`app.py`, `app_windows.py`, `painel.html`, `sw.js` v6, `generate_icon.py`) para o GitHub e disparar o deploy do Render.
+2. **Restaurar a Tarefa do Carro (#P03 sobrescrita):**
+   - Confirmar o título da manutenção do carro para reinseri-la no app (como `#P05`, projeto `Carro`).
