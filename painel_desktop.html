@@ -683,8 +683,30 @@
       } catch (e) {}
     }
 
+    function sortTasks(tasks) {
+      if (!Array.isArray(tasks)) return tasks;
+      const statusOrder = {
+        'em andamento': 1,
+        'pendente': 2,
+        'aguardando retorno': 3,
+        'não iniciada': 4,
+        'liberado p/ testes': 5,
+        'aguardando testes': 6,
+        'em testes': 6,
+        'planejada': 7,
+        'concluída': 8
+      };
+      return tasks.sort((a, b) => {
+        const orderA = statusOrder[(a.status || '').toLowerCase().trim()] || 99;
+        const orderB = statusOrder[(b.status || '').toLowerCase().trim()] || 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.codigo || '').localeCompare(b.codigo || '', undefined, { numeric: true });
+      });
+    }
+
     // ==================== RENDERIZAÇÃO DE TAREFAS ====================
     function renderTasks() {
+      sortTasks(allTasks);
       const taskList = document.getElementById('taskList');
       taskList.innerHTML = '';
 

@@ -680,7 +680,19 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
                    t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia
             FROM tb_tarefas t
             LEFT JOIN tb_projetos p ON t.id_projeto = p.id
-            ORDER BY t.id;
+            ORDER BY 
+                CASE t.status 
+                    WHEN 'Em andamento' THEN 1 
+                    WHEN 'Pendente' THEN 2
+                    WHEN 'Aguardando retorno' THEN 3
+                    WHEN 'Não iniciada' THEN 4
+                    WHEN 'Liberado p/ testes' THEN 5 
+                    WHEN 'Aguardando testes' THEN 6 
+                    WHEN 'Em testes' THEN 6
+                    WHEN 'Planejada' THEN 7 
+                    ELSE 8 
+                END,
+                t.codigo;
             """)
             cols = [d[0] for d in cur.description]
             rows = [dict(zip(cols, r)) for r in cur.fetchall()]

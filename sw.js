@@ -1,5 +1,5 @@
-// ARPego - Service Worker Offline-First (v6)
-const CACHE_NAME = 'arpego-pwa-v6';
+// ARPego - Service Worker Offline-First (v7)
+const CACHE_NAME = 'arpego-pwa-v7';
 const PRECACHE_ASSETS = [
   '/',
   '/painel',

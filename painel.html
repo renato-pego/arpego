@@ -1205,13 +1205,13 @@
       }
     }
 
-    // Registro do Service Worker com forçamento de versão v6
+    // Registro do Service Worker com forçamento de versão v7
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=6')
+        navigator.serviceWorker.register('/sw.js?v=7')
           .then(reg => {
             reg.update();
-            console.log('ServiceWorker ativo v6:', reg.scope);
+            console.log('ServiceWorker ativo v7:', reg.scope);
           })
           .catch(err => console.log('ServiceWorker falhou:', err));
       });
@@ -1608,7 +1608,29 @@
       }
     }
 
+    function sortTasks(tasks) {
+      if (!Array.isArray(tasks)) return tasks;
+      const statusOrder = {
+        'em andamento': 1,
+        'pendente': 2,
+        'aguardando retorno': 3,
+        'não iniciada': 4,
+        'liberado p/ testes': 5,
+        'aguardando testes': 6,
+        'em testes': 6,
+        'planejada': 7,
+        'concluída': 8
+      };
+      return tasks.sort((a, b) => {
+        const orderA = statusOrder[(a.status || '').toLowerCase().trim()] || 99;
+        const orderB = statusOrder[(b.status || '').toLowerCase().trim()] || 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.codigo || '').localeCompare(b.codigo || '', undefined, { numeric: true });
+      });
+    }
+
     function renderTasks() {
+      sortTasks(allTasks);
       const taskList = document.getElementById('taskList');
       taskList.innerHTML = '';
 
