@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="#090d16"/>
+  <rect x="24" y="24" width="464" height="464" rx="90" fill="url(#bgGrad)" fill-opacity="0.25" stroke="#0284c7" stroke-width="8"/>
+  
+  <!-- Robot Head / Assistant Shape -->
+  <circle cx="256" cy="220" r="120" fill="#0f172a" stroke="#38bdf8" stroke-width="12"/>
+  <circle cx="206" cy="205" r="22" fill="#38bdf8"/>
+  <circle cx="306" cy="205" r="22" fill="#38bdf8"/>
+  <path d="M 216 265 Q 256 295 296 265" stroke="#38bdf8" stroke-width="12" fill="none" stroke-linecap="round"/>
+  
+  <!-- Antenna -->
+  <line x1="256" y1="100" x2="256" y2="60" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="256" cy="50" r="18" fill="#38bdf8"/>
+  
+  <!-- Ears / Bolts -->
+  <rect x="116" y="200" width="20" height="40" rx="10" fill="#0284c7"/>
+  <rect x="376" y="200" width="20" height="40" rx="10" fill="#0284c7"/>
+
+  <!-- Logo text -->
+  <text x="256" y="420" font-family="-apple-system, sans-serif" font-size="42" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="3">ARPEGO</text>
+</svg>

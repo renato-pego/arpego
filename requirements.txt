@@ -1,0 +1,1 @@
+# Zero dependencias externas necessarias (usa biblioteca padrao do Python com sqlite3 e http.server)

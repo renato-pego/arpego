@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistente Pessoal - ARPego (Base Forte Desktop)</title>
+  
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --success: #22c55e;
+      --warning: #eab308;
+      --danger: #ef4444;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 14px; max-width: 1050px; margin: 0 auto; -webkit-font-smoothing: antialiased; }
+    
+    header { padding: 10px 4px 14px 4px; border-bottom: 1px solid var(--card-border); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    h1 { font-size: 1.25rem; font-weight: 800; color: #fff; }
+
+    .brand-btn { background: transparent; border: 1.5px solid #0284c7; border-radius: 10px; padding: 2px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; outline: none; }
+    .brand-btn:hover, .brand-btn:active { transform: scale(1.08); border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+    .brand-icon { width: 30px; height: 30px; border-radius: 8px; display: block; }
+
+    .badge-desktop { font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s; }
+    .badge-sql-ok { background: #052e16; color: #4ade80; border: 1px solid #16a34a; }
+    .badge-sql-fallback { background: #422006; color: #facc15; border: 1px solid #ca8a04; }
+    .badge-cloud-ok { background: #082f49; color: #38bdf8; border: 1px solid #0284c7; }
+
+    .btn-sync { background: #0284c7; color: #ffffff; border: none; font-size: 0.8rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-sync:hover { background: #0369a1; }
+    .btn-sync:disabled { opacity: 0.6; cursor: wait; }
+
+    /* Top Main Tabs */
+    .main-nav { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .main-tab { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted); padding: 10px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; text-align: center; cursor: pointer; transition: 0.2s; }
+    .main-tab.active { background: var(--primary); color: #0f172a; border-color: var(--primary); }
+
+    /* Metrics */
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .metric-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px; text-align: center; }
+    .metric-num { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+    .metric-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; }
+
+    /* Card de Filtros Compacto (4 Elementos) */
+    .filters-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .filters-row-combos {
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      width: 100%;
+    }
+    .filter-combo {
+      flex: 1 1 50%;
+      min-width: 0;
+      padding: 8px 10px;
+      background: #0f172a;
+      color: #fff;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-combo:focus { border-color: var(--primary); }
+
+    .filters-row-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      width: 100%;
+    }
+    .btn-clear-filters {
+      flex: 1 1 50%;
+      min-width: 0;
+      background: #334155;
+      color: #cbd5e1;
+      border: 1px solid var(--card-border);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: 0.15s;
+    }
+    .btn-clear-filters:hover { background: #475569; color: #fff; }
+
+    .btn-new-task {
+      flex: 1 1 50%;
+      min-width: 0;
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: 0.15s;
+    }
+    .btn-new-task:hover { background: #0369a1; }
+
+    .active-filters-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-top: 4px;
+      border-top: 1px dashed #334155;
+    }
+
+    @media (min-width: 768px) {
+      .filters-container { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+      .filters-row-combos { width: auto; flex: 1; max-width: 650px; }
+      .filters-row-actions { width: auto; flex: 0 0 auto; }
+      .btn-clear-filters, .btn-new-task { flex: 0 0 auto; }
+    }
+
+    .prio-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-left: 6px;
+      text-transform: uppercase;
+    }
+
+    /* Tasks Cards */
+    .tasks-grid { display: flex; flex-direction: column; gap: 12px; }
+    .task-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; transition: 0.15s; }
+    .task-card.completed { opacity: 0.65; }
+
+    .task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+    .task-id { font-size: 0.8rem; font-weight: 700; color: var(--primary); background: #0369a120; padding: 2px 6px; border-radius: 6px; }
+    .task-client { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-left: 4px; }
+    .task-title { font-size: 0.96rem; font-weight: 600; line-height: 1.35; margin-bottom: 6px; color: #f1f5f9; }
+
+    .support-tip { background: #0f172a80; border: 1px dashed var(--card-border); border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; color: #cbd5e1; margin-top: 8px; }
+    .tip-icon { color: var(--warning); margin-right: 4px; }
+
+    .status-select { background: #0f172a; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--card-border); cursor: pointer; outline: none; }
+
+    .task-actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin-top: 8px; }
+    .btn-icon { background: transparent; border: 1px solid #475569; color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: 0.15s; }
+    .btn-icon:hover { color: #fff; border-color: #94a3b8; }
+
+    /* DOMAINS SECTION (DESKTOP EXCLUSIVE) */
+    .domain-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+    .domain-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    .domain-table th { text-align: left; padding: 8px 10px; color: var(--text-muted); border-bottom: 1px solid var(--card-border); font-size: 0.75rem; text-transform: uppercase; }
+    .domain-table td { padding: 10px; border-bottom: 1px solid #334155; vertical-align: middle; }
+    .color-pill { display: inline-flex; align-items: center; gap: 6px; font-family: monospace; font-size: 0.75rem; }
+    .color-swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 1px solid rgba(255,255,255,0.2); }
+
+    /* VAULT (COFRE) STYLES */
+    .vault-section { display: none; }
+    .vault-lock-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px; text-align: center; max-width: 400px; margin: 30px auto; }
+    .vault-lock-icon { font-size: 3rem; margin-bottom: 12px; }
+    .vault-input { width: 100%; padding: 12px; font-size: 1.1rem; border-radius: 10px; border: 1px solid var(--card-border); background: #0f172a; color: #fff; text-align: center; margin-bottom: 14px; letter-spacing: 4px; }
+    .vault-btn { width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; }
+    .vault-btn-primary { background: var(--purple); color: #fff; }
+
+    .cred-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; margin-bottom: 12px; border-left: 4px solid var(--purple); }
+    .cred-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .cred-title { font-size: 1rem; font-weight: 700; color: #fff; }
+    .cred-badge { font-size: 0.7rem; background: #6b21a830; color: #d8b4fe; border: 1px solid var(--purple); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+    .cred-field { display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 0.85rem; }
+    .cred-label { color: var(--text-muted); font-size: 0.75rem; }
+    .cred-val { font-family: monospace; font-weight: 600; color: #e2e8f0; }
+
+    /* Modal Form */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; width: 100%; max-width: 480px; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; color: #fff; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: #0f172a; color: #fff; font-size: 0.9rem; }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: #0f172a; padding: 10px 20px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; display: none; z-index: 3000; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button class="brand-btn" onclick="openLegendModal()" title="Guia Visual de Cores">
+        <img src="/icon.svg" alt="ARPego" class="brand-icon">
+      </button>
+      <div>
+        <h1 onclick="openLegendModal()" style="cursor: pointer;">Assistente Pessoal - ARPego</h1>
+        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Base Forte Desktop (Stand Alone)</div>
+      </div>
+      <span id="badge-db-status" class="badge-desktop badge-sql-ok">🟢 SQL Server (ASSISTPE)</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="badge-desktop" style="background: #1e293b; color: #38bdf8; border: 1px solid #0284c7;">👤 Renato</span>
+      <button id="btn-sync-cloud" class="btn-sync" onclick="triggerCloudSync()">🔄 Sincronizar Nuvem</button>
+      <a href="https://arpego-9p4x.onrender.com/" target="_blank" class="btn-icon" style="text-decoration: none; padding: 6px 10px;" title="Abrir Hub na Nuvem">☁️ Nuvem</a>
+    </div>
+  </header>
+
+  <!-- Top Main Tabs -->
+  <nav class="main-nav">
+    <div class="main-tab active" id="tab-btn-tasks" onclick="switchMainTab('tasks')">📋 Tarefas</div>
+    <div class="main-tab" id="tab-btn-domains" onclick="switchMainTab('domains')">⚙️ Gerenciar Domínios</div>
+    <div class="main-tab" id="tab-btn-vault" onclick="switchMainTab('vault')">🔐 Cofre Seguro</div>
+  </nav>
+
+  <!-- ==================== SEÇÃO 1: TAREFAS ==================== -->
+  <section id="section-tasks">
+    <section class="metrics">
+      <div class="metric-card">
+        <div class="metric-num" id="metric-pendentes">--</div>
+        <div class="metric-label">Pendentes</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" id="metric-testes" style="color: var(--success);">--</div>
+        <div class="metric-label">Em Testes</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" id="metric-concluidas" style="color: var(--text-muted);">--</div>
+        <div class="metric-label">Concluídas</div>
+      </div>
+    </section>
+
+    <!-- Card de Filtros Compacto (4 Elementos) -->
+    <div class="filters-container">
+      <div class="filters-row-combos">
+        <select id="filter-tipo" class="filter-combo" onchange="onFilterTipoChange()">
+          <option value="all">⚡ Filtro por...</option>
+          <option value="status">⚡ Status</option>
+          <option value="projeto">📁 Projeto / Cliente</option>
+          <option value="prioridade">🎯 Prioridade</option>
+        </select>
+        <select id="filter-chave" class="filter-combo" onchange="onFilterChaveChange()">
+          <option value="all">-- Todos os registros --</option>
+        </select>
+      </div>
+
+      <div class="filters-row-actions">
+        <button id="btn-clear-filters" class="btn-clear-filters" onclick="clearFilters()">✕ Limpar</button>
+        <button class="btn-new-task" onclick="openNewTaskModal()">➕ Nova Tarefa</button>
+      </div>
+
+      <div id="active-filter-tags" class="active-filters-chips" style="display: none;"></div>
+    </div>
+
+    <!-- Lista de Tarefas -->
+    <div id="task-loading" style="text-align: center; color: var(--text-muted); padding: 30px; display: none;">Carregando tarefas locais...</div>
+    <div class="tasks-grid" id="taskList"></div>
+  </section>
+
+  <!-- ==================== SEÇÃO 2: GERENCIAR DOMÍNIOS (EXCLUSIVO DESKTOP) ==================== -->
+  <section id="section-domains" style="display: none;">
+    <!-- Tabela de Status -->
+    <div class="domain-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div>
+          <h2 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🚦 Status de Tarefas</h2>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Defina nomes e cores das bordas e seletores que serão replicados para o celular.</div>
+        </div>
+        <button class="btn-new-task" onclick="openNewStatusModal()">➕ Novo Status</button>
+      </div>
+
+      <table class="domain-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Borda Lateral</th>
+            <th>Texto / Ícone</th>
+            <th>Amostra Visual</th>
+            <th style="text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="table-status-body">
+          <!-- Preenchido dinamicamente -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tabela de Prioridades -->
+    <div class="domain-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div>
+          <h2 style="font-size: 1.1rem; font-weight: 700; color: #fff;">🏷️ Níveis de Prioridade</h2>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Defina os níveis de urgência e as cores dos crachás visuais.</div>
+        </div>
+        <button class="btn-new-task" onclick="openNewPrioModal()">➕ Nova Prioridade</button>
+      </div>
+
+      <table class="domain-table">
+        <thead>
+          <tr>
+            <th>Prioridade</th>
+            <th>Cor Principal</th>
+            <th>Amostra do Crachá</th>
+            <th style="text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="table-prio-body">
+          <!-- Preenchido dinamicamente -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ==================== SEÇÃO 3: COFRE SEGURO ==================== -->
+  <section id="section-vault" class="vault-section">
+    <div id="vault-locked" class="vault-lock-box">
+      <div class="vault-lock-icon">🔐</div>
+      <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;">Cofre Seguro Local</h2>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
+        Criptografia AES-256-GCM. Digite seu PIN mestre para descriptografar.
+      </div>
+      <input type="password" id="vault-pin-input" class="vault-input" maxlength="8" placeholder="••••">
+      <button class="vault-btn vault-btn-primary" onclick="unlockVault()">Desbloquear Cofre</button>
+    </div>
+
+    <div id="vault-unlocked" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <button class="btn-new-task" onclick="openNewCredModal()">➕ Novo Acesso</button>
+        <button class="btn-icon" onclick="lockVault()">🔒 Bloquear Cofre</button>
+      </div>
+      <div id="credList"></div>
+    </div>
+  </section>
+
+  <!-- ==================== MODAIS ==================== -->
+  <!-- Modal Nova Tarefa -->
+  <div id="newTaskModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-title">➕ Cadastrar Nova Tarefa (Local)</div>
+      
+      <div class="form-group">
+        <label>Projeto / Cliente:</label>
+        <input type="text" id="task-proj" list="projetos-list" class="form-control" placeholder="Ex: IFF Argentina, Novartis, Pessoal..." onchange="onTaskProjChange()">
+        <datalist id="projetos-list"></datalist>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de Escopo:</label>
+        <select id="task-tipo" class="form-control">
+          <option value="Profissional">Profissional</option>
+          <option value="Pessoal">Pessoal</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Título da Tarefa:</label>
+        <input type="text" id="task-titulo" class="form-control" placeholder="Ex: Ajustar BAdI de cálculo do frete">
+      </div>
+
+      <div class="form-group">
+        <label>Prioridade:</label>
+        <select id="task-prio" class="form-control"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Recursividade (Reinício às 04:00):</label>
+        <select id="task-rec" class="form-control">
+          <option value="0">Nenhuma (tarefa avulsa)</option>
+          <option value="1">Diária (reinicia todos os dias às 04:00)</option>
+          <option value="2">A cada 2 dias (às 04:00)</option>
+          <option value="3">A cada 3 dias (às 04:00)</option>
+          <option value="5">A cada 5 dias (às 04:00)</option>
+          <option value="7">Semanal (a cada 7 dias às 04:00)</option>
+          <option value="15">Quinzenal (a cada 15 dias às 04:00)</option>
+          <option value="30">Mensal (a cada 30 dias às 04:00)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Observações / Dica de Apoio (opcional):</label>
+        <input type="text" id="task-obs" class="form-control" placeholder="Ex: Conferir tabela / programa Z...">
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="vault-btn vault-btn-primary" style="background: var(--primary); color: #0f172a;" onclick="saveNewTask()">Criar Tarefa</button>
+        <button class="btn-icon" style="width: 100px;" onclick="closeNewTaskModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Tarefa -->
+  <div id="editTaskModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-title">✏️ Editar Tarefa <span id="edit-task-cod" style="color: var(--primary);"></span></div>
+      
+      <div class="form-group">
+        <label>Projeto / Cliente:</label>
+        <input type="text" id="edit-task-proj" list="projetos-list" class="form-control" onchange="onEditTaskProjChange()">
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de Escopo:</label>
+        <select id="edit-task-tipo" class="form-control">
+          <option value="Profissional">Profissional</option>
+          <option value="Pessoal">Pessoal</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Título da Tarefa:</label>
+        <input type="text" id="edit-task-titulo" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label>Status:</label>
+        <select id="edit-task-status" class="form-control"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Prioridade:</label>
+        <select id="edit-task-prio" class="form-control"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Recursividade (Reinício às 04:00):</label>
+        <select id="edit-task-rec" class="form-control">
+          <option value="0">Nenhuma (tarefa avulsa)</option>
+          <option value="1">Diária (reinicia às 04:00)</option>
+          <option value="2">A cada 2 dias (às 04:00)</option>
+          <option value="3">A cada 3 dias (às 04:00)</option>
+          <option value="5">A cada 5 dias (às 04:00)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Observações / Dica de Apoio:</label>
+        <input type="text" id="edit-task-obs" class="form-control">
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="vault-btn vault-btn-primary" style="background: var(--primary); color: #0f172a;" onclick="saveEditTask()">Salvar Alterações</button>
+        <button class="btn-icon" style="width: 100px;" onclick="closeEditTaskModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cadastrar / Editar Status (Domínio) -->
+  <div id="statusModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-title" id="status-modal-title">⚙️ Cadastrar / Editar Status</div>
+      
+      <div class="form-group">
+        <label>Nome do Status:</label>
+        <input type="text" id="status-nome" class="form-control" placeholder="Ex: Em homologação">
+      </div>
+
+      <div class="form-group">
+        <label>Cor da Borda Lateral (HEX):</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="color" id="status-borda-picker" value="#38bdf8" style="width: 44px; height: 38px; border-radius: 8px; border: none; cursor: pointer;" oninput="document.getElementById('status-borda').value = this.value">
+          <input type="text" id="status-borda" class="form-control" value="#0284c7" oninput="document.getElementById('status-borda-picker').value = this.value">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Cor do Texto / Ícone (HEX):</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="color" id="status-cor-picker" value="#38bdf8" style="width: 44px; height: 38px; border-radius: 8px; border: none; cursor: pointer;" oninput="document.getElementById('status-cor').value = this.value">
+          <input type="text" id="status-cor" class="form-control" value="#38bdf8" oninput="document.getElementById('status-cor-picker').value = this.value">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="vault-btn vault-btn-primary" style="background: #0284c7;" onclick="saveStatusDomain()">Salvar no SQL Server</button>
+        <button class="btn-icon" style="width: 100px;" onclick="closeStatusModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cadastrar / Editar Prioridade (Domínio) -->
+  <div id="prioModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-title" id="prio-modal-title">⚙️ Cadastrar / Editar Prioridade</div>
+      
+      <div class="form-group">
+        <label>Nome da Prioridade:</label>
+        <input type="text" id="prio-nome" class="form-control" placeholder="Ex: Crítica">
+      </div>
+
+      <div class="form-group">
+        <label>Cor Principal (HEX):</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="color" id="prio-cor-picker" value="#f87171" style="width: 44px; height: 38px; border-radius: 8px; border: none; cursor: pointer;" oninput="document.getElementById('prio-cor').value = this.value">
+          <input type="text" id="prio-cor" class="form-control" value="#f87171" oninput="document.getElementById('prio-cor-picker').value = this.value">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="vault-btn vault-btn-primary" style="background: #0284c7;" onclick="savePrioDomain()">Salvar no SQL Server</button>
+        <button class="btn-icon" style="width: 100px;" onclick="closePrioModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Guia Visual de Cores -->
+  <div id="legendModal" class="modal" onclick="if(event.target === this) closeLegendModal()">
+    <div class="modal-box" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <img src="/icon.svg" alt="ARPego" style="width: 32px; height: 32px; border-radius: 8px;">
+          <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">Guia Visual de Cores</div>
+        </div>
+        <button class="btn-icon" onclick="closeLegendModal()" style="font-size: 1.1rem; padding: 2px 8px;">✕</button>
+      </div>
+
+      <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 14px;">
+        Indicadores visuais configurados no seu SQL Server local:
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase;">
+          🚦 1. Borda Lateral Esquerda (Status de Andamento)
+        </div>
+        <div id="legend-status-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase;">
+          🏷️ 2. Crachás de Prioridade (Nível de Urgência)
+        </div>
+        <div id="legend-prio-list" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+      </div>
+
+      <button class="vault-btn vault-btn-primary" style="background: #0284c7; width: 100%; padding: 10px;" onclick="closeLegendModal()">Entendido</button>
+    </div>
+  </div>
+
+  <div id="toast">✅ Concluído!</div>
+
+  <script>
+    // ==================== CONFIGURAÇÃO DE DOMÍNIOS (ÚNICA FONTE DA VERDADE) ====================
+    let STATUS_CONFIG = [
+      { id: 'nao_iniciada', nome: 'Não iniciada',       cor: '#cbd5e1', borda: '#475569', bg: '#1e293b' },
+      { id: 'em_andamento', nome: 'Em andamento',       cor: '#38bdf8', borda: '#0284c7', bg: '#0369a130' },
+      { id: 'aguardando',   nome: 'Aguardando retorno', cor: '#facc15', borda: '#eab308', bg: '#854d0e30' },
+      { id: 'pendente',     nome: 'Pendente',           cor: '#facc15', borda: '#eab308', bg: '#854d0e30' },
+      { id: 'testes',       nome: 'Em testes',          cor: '#4ade80', borda: '#22c55e', bg: '#065f4630' },
+      { id: 'concluida',    nome: 'Concluída',          cor: '#94a3b8', borda: '#64748b', bg: '#1e293b' }
+    ];
+
+    let PRIORITY_CONFIG = [
+      { id: 'alta',  nome: 'Alta',  cor: '#f87171', borda: '#ef444450', bg: '#ef444420' },
+      { id: 'media', nome: 'Média', cor: '#fbbf24', borda: '#f59e0b50', bg: '#f59e0b20' },
+      { id: 'baixa', nome: 'Baixa', cor: '#60a5fa', borda: '#3b82f650', bg: '#3b82f620' }
+    ];
+
+    let allTasks = [];
+    let activeFilters = { status: 'all', projeto: 'all', prioridade: 'all' };
+
+    function getStatusConfig(statusName) {
+      if (!statusName) return STATUS_CONFIG[0];
+      const s = statusName.trim().toLowerCase();
+      if (s.includes('teste')) return STATUS_CONFIG.find(x => x.nome.toLowerCase().includes('teste')) || STATUS_CONFIG[0];
+      if (s === 'planejada' || s === 'recorrente') return STATUS_CONFIG.find(x => x.nome.toLowerCase().includes('não')) || STATUS_CONFIG[0];
+      if (s.startsWith('aguardando')) return STATUS_CONFIG.find(x => x.nome.toLowerCase().startsWith('aguardando')) || STATUS_CONFIG[0];
+      const found = STATUS_CONFIG.find(x => x.nome.toLowerCase() === s);
+      return found || STATUS_CONFIG[0];
+    }
+
+    function getPriorityConfig(prioName) {
+      if (!prioName) return PRIORITY_CONFIG[0];
+      const p = prioName.trim().toLowerCase();
+      const found = PRIORITY_CONFIG.find(x => x.nome.toLowerCase() === p);
+      return found || PRIORITY_CONFIG[0];
+    }
+
+    function renderStatusOptionsHtml(selectedStatus) {
+      const current = getStatusConfig(selectedStatus);
+      return STATUS_CONFIG.map(st => {
+        const isSel = (st.nome === current.nome) ? 'selected' : '';
+        return `<option value="${st.nome}" ${isSel}>${st.nome}</option>`;
+      }).join('');
+    }
+
+    function renderPriorityOptionsHtml(selectedPrio) {
+      const current = getPriorityConfig(selectedPrio);
+      return PRIORITY_CONFIG.map(pr => {
+        const isSel = (pr.nome === current.nome) ? 'selected' : '';
+        return `<option value="${pr.nome}" ${isSel}>${pr.nome}</option>`;
+      }).join('');
+    }
+
+    function populateStaticSelects() {
+      const taskPrioEl = document.getElementById('task-prio');
+      if (taskPrioEl) taskPrioEl.innerHTML = renderPriorityOptionsHtml(taskPrioEl.value || 'Alta');
+      const editStatusEl = document.getElementById('edit-task-status');
+      if (editStatusEl) editStatusEl.innerHTML = renderStatusOptionsHtml(editStatusEl.value);
+      const editPrioEl = document.getElementById('edit-task-prio');
+      if (editPrioEl) editPrioEl.innerHTML = renderPriorityOptionsHtml(editPrioEl.value);
+    }
+
+    // ==================== ABAS PRINCIPAIS ====================
+    function switchMainTab(tab) {
+      document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+      document.getElementById('section-tasks').style.display = 'none';
+      document.getElementById('section-domains').style.display = 'none';
+      document.getElementById('section-vault').style.display = 'none';
+
+      if (tab === 'tasks') {
+        document.getElementById('tab-btn-tasks').classList.add('active');
+        document.getElementById('section-tasks').style.display = 'block';
+      } else if (tab === 'domains') {
+        document.getElementById('tab-btn-domains').classList.add('active');
+        document.getElementById('section-domains').style.display = 'block';
+        renderDomainsManagementUI();
+      } else {
+        document.getElementById('tab-btn-vault').classList.add('active');
+        document.getElementById('section-vault').style.display = 'block';
+      }
+    }
+
+    // ==================== CARREGAMENTO DE DADOS (STAND ALONE LOCAL) ====================
+    async function loadDominios() {
+      try {
+        const res = await fetch('/api/dominios');
+        const data = await res.json();
+        if (data.status && data.status.length > 0) STATUS_CONFIG = data.status;
+        if (data.prioridades && data.prioridades.length > 0) PRIORITY_CONFIG = data.prioridades;
+        populateStaticSelects();
+      } catch (e) {
+        console.log("Usando dominios padrao em modo standalone");
+      }
+    }
+
+    async function loadTasks() {
+      const loadingEl = document.getElementById('task-loading');
+      if (loadingEl && allTasks.length === 0) loadingEl.style.display = 'block';
+
+      try {
+        const res = await fetch('/api/tarefas');
+        allTasks = await res.json();
+        renderTasks();
+        loadProjetos();
+      } catch (e) {
+        console.error("Erro ao carregar tarefas locais:", e);
+      } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+      }
+    }
+
+    async function loadProjetos() {
+      try {
+        const res = await fetch('/api/projetos');
+        const projs = await res.json();
+        const datalist = document.getElementById('projetos-list');
+        if (datalist && Array.isArray(projs)) {
+          datalist.innerHTML = '';
+          projs.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.nome;
+            datalist.appendChild(opt);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // ==================== RENDERIZAÇÃO DE TAREFAS ====================
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+
+      let pendentes = 0;
+      let emTestes = 0;
+      let concluidas = 0;
+
+      allTasks.forEach(t => {
+        const stConf = getStatusConfig(t.status);
+        if (stConf.nome === 'Concluída') concluidas++;
+        else if (stConf.nome === 'Em testes' || stConf.nome.toLowerCase().includes('teste')) emTestes++;
+        else pendentes++;
+      });
+
+      document.getElementById('metric-pendentes').innerText = pendentes;
+      document.getElementById('metric-testes').innerText = emTestes;
+      document.getElementById('metric-concluidas').innerText = concluidas;
+
+      if (allTasks.length === 0) {
+        taskList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 30px;">Nenhuma tarefa encontrada no SQL Server local.</div>';
+        return;
+      }
+
+      allTasks.forEach(t => {
+        const stConf = getStatusConfig(t.status);
+        const prioConf = getPriorityConfig(t.prioridade);
+        t.status = stConf.nome;
+        t.prioridade = prioConf.nome;
+
+        const projeto = (t.projeto || 'Geral').trim();
+        const isDone = stConf.nome === 'Concluída';
+
+        const cleanCode = (t.codigo || '').replace('#', '');
+        const card = document.createElement('article');
+        card.className = isDone ? 'task-card completed' : 'task-card';
+        card.style.borderLeft = `4px solid ${stConf.borda}`;
+        card.setAttribute('data-status', stConf.nome);
+        card.setAttribute('data-projeto', projeto);
+        card.setAttribute('data-prioridade', prioConf.nome);
+        card.id = 'card-' + cleanCode;
+
+        const statusSelectHtml = `
+          <select class="status-select" style="color: ${stConf.cor}; border-color: ${stConf.borda};" onchange="updateStatus('${t.codigo}', this.value)">
+            ${renderStatusOptionsHtml(stConf.nome)}
+          </select>
+        `;
+
+        const prioBadge = `<span class="prio-badge" style="color: ${prioConf.cor}; background: ${prioConf.bg}; border: 1px solid ${prioConf.borda}; margin-left: 6px;">${prioConf.nome}</span>`;
+
+        let recBadge = '';
+        if (t.recorrencia_dias && t.recorrencia_dias > 0) {
+          recBadge = `<span style="font-size: 0.7rem; color: var(--purple); background: #6b21a820; border: 1px solid #a855f7; padding: 2px 6px; border-radius: 6px; margin-left: 6px;">🔄 A cada ${t.recorrencia_dias}d</span>`;
+        }
+
+        const actionsHtml = `
+          <div class="task-actions">
+            <button class="btn-icon" onclick="openEditTaskModal('${t.codigo}')" title="Editar Tarefa">✏️ Editar</button>
+            <button class="btn-icon" style="color: var(--danger); border-color: #7f1d1d;" onclick="deleteTask('${t.codigo}')" title="Excluir Tarefa">🗑️ Excluir</button>
+          </div>
+        `;
+
+        card.innerHTML = `
+          <div class="task-header">
+            <div>
+              <span class="task-id">${t.codigo}</span> 
+              <span class="task-client">${projeto}</span>
+              ${prioBadge}
+              ${recBadge}
+            </div>
+            ${statusSelectHtml}
+          </div>
+          <div class="task-title" style="${isDone ? 'text-decoration: line-through; opacity: 0.75;' : ''}">${t.titulo}</div>
+          ${t.observacoes ? `<div class="support-tip"><span class="tip-icon">💡</span> ${t.observacoes}</div>` : ''}
+          ${actionsHtml}
+        `;
+
+        taskList.appendChild(card);
+      });
+
+      applyFilters();
+    }
+
+    async function updateStatus(codigo, novoStatus) {
+      try {
+        const res = await fetch('/api/tarefa/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codigo: codigo, status: novoStatus })
+        });
+        const data = await res.json();
+        showToast('✅ ' + codigo + ' atualizada para: ' + novoStatus);
+        loadTasks();
+      } catch (e) {
+        showToast('⚠️ Erro ao atualizar status localmente');
+      }
+    }
+
+    // ==================== FILTROS CUMULATIVOS ====================
+    function onFilterTipoChange() {
+      const tipoEl = document.getElementById('filter-tipo');
+      const chaveEl = document.getElementById('filter-chave');
+      if (!tipoEl || !chaveEl) return;
+
+      const tipo = tipoEl.value;
+      chaveEl.innerHTML = '';
+
+      if (tipo === 'status') {
+        chaveEl.innerHTML = '<option value="all">⚡ Todos os Status</option>' + 
+          STATUS_CONFIG.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+        chaveEl.value = activeFilters.status;
+      } else if (tipo === 'projeto') {
+        const projSet = new Set();
+        allTasks.forEach(t => { if (t.projeto) projSet.add(t.projeto); });
+        let opts = '<option value="all">📁 Todos os Projetos</option>';
+        Array.from(projSet).sort().forEach(nome => {
+          opts += `<option value="${nome}">${nome}</option>`;
+        });
+        chaveEl.innerHTML = opts;
+        chaveEl.value = activeFilters.projeto;
+      } else if (tipo === 'prioridade') {
+        chaveEl.innerHTML = '<option value="all">🎯 Todas as Prioridades</option>' + 
+          PRIORITY_CONFIG.map(p => `<option value="${p.nome}">${p.nome}</option>`).join('');
+        chaveEl.value = activeFilters.prioridade;
+      } else {
+        chaveEl.innerHTML = '<option value="all">-- Todos os registros --</option>';
+        chaveEl.value = 'all';
+      }
+    }
+
+    function onFilterChaveChange() {
+      const tipoEl = document.getElementById('filter-tipo');
+      const chaveEl = document.getElementById('filter-chave');
+      if (!tipoEl || !chaveEl) return;
+
+      const tipo = tipoEl.value;
+      const chave = chaveEl.value;
+
+      if (tipo === 'status') activeFilters.status = chave;
+      else if (tipo === 'projeto') activeFilters.projeto = chave;
+      else if (tipo === 'prioridade') activeFilters.prioridade = chave;
+
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const cards = document.querySelectorAll('#taskList .task-card');
+      let visible = 0;
+
+      cards.forEach(c => {
+        const cStatus = c.getAttribute('data-status');
+        const cProj = c.getAttribute('data-projeto');
+        const cPrio = c.getAttribute('data-prioridade');
+
+        const matchStatus = (activeFilters.status === 'all' || cStatus === activeFilters.status);
+        const matchProj = (activeFilters.projeto === 'all' || cProj === activeFilters.projeto);
+        const matchPrio = (activeFilters.prioridade === 'all' || cPrio === activeFilters.prioridade);
+
+        if (matchStatus && matchProj && matchPrio) {
+          c.style.display = 'block';
+          visible++;
+        } else {
+          c.style.display = 'none';
+        }
+      });
+
+      renderActiveFilterTags();
+    }
+
+    function renderActiveFilterTags() {
+      const tagsContainer = document.getElementById('active-filter-tags');
+      const btnLimpar = document.getElementById('btn-clear-filters');
+      if (!tagsContainer) return;
+
+      let count = 0;
+      let html = '';
+
+      if (activeFilters.status !== 'all') {
+        count++;
+        html += `<span style="background: #1e293b; border: 1px solid var(--primary); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;">⚡ ${activeFilters.status} <b onclick="removeFilter('status')" style="cursor: pointer; color: #f87171;">✕</b></span>`;
+      }
+      if (activeFilters.projeto !== 'all') {
+        count++;
+        html += `<span style="background: #1e293b; border: 1px solid var(--primary); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;">📁 ${activeFilters.projeto} <b onclick="removeFilter('projeto')" style="cursor: pointer; color: #f87171;">✕</b></span>`;
+      }
+      if (activeFilters.prioridade !== 'all') {
+        count++;
+        html += `<span style="background: #1e293b; border: 1px solid var(--primary); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;">🎯 ${activeFilters.prioridade} <b onclick="removeFilter('prioridade')" style="cursor: pointer; color: #f87171;">✕</b></span>`;
+      }
+
+      tagsContainer.innerHTML = html;
+      tagsContainer.style.display = count > 0 ? 'flex' : 'none';
+      if (btnLimpar) btnLimpar.innerText = count > 0 ? `✕ Limpar (${count})` : '✕ Limpar';
+    }
+
+    function removeFilter(tipo) {
+      activeFilters[tipo] = 'all';
+      const tipoEl = document.getElementById('filter-tipo');
+      if (tipoEl && tipoEl.value === tipo) {
+        document.getElementById('filter-chave').value = 'all';
+      }
+      applyFilters();
+    }
+
+    function clearFilters() {
+      activeFilters = { status: 'all', projeto: 'all', prioridade: 'all' };
+      const tipoEl = document.getElementById('filter-tipo');
+      if (tipoEl) tipoEl.value = 'all';
+      onFilterTipoChange();
+      applyFilters();
+    }
+
+    // ==================== GESTÃO DE DOMÍNIOS (DESKTOP EXCLUSIVO) ====================
+    function renderDomainsManagementUI() {
+      // Tabela de Status
+      const statusBody = document.getElementById('table-status-body');
+      if (statusBody) {
+        statusBody.innerHTML = STATUS_CONFIG.map(s => `
+          <tr>
+            <td style="font-weight: 700; color: ${s.cor};">${s.nome}</td>
+            <td>
+              <span class="color-pill"><span class="color-swatch" style="background: ${s.borda};"></span>${s.borda}</span>
+            </td>
+            <td>
+              <span class="color-pill"><span class="color-swatch" style="background: ${s.cor};"></span>${s.cor}</span>
+            </td>
+            <td>
+              <div style="border-left: 4px solid ${s.borda}; background: #0f172a; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; color: ${s.cor}; font-weight: 600;">
+                Exemplo do Card
+              </div>
+            </td>
+            <td style="text-align: right;">
+              <button class="btn-icon" onclick="openEditStatusModal('${s.nome}', '${s.borda}', '${s.cor}')">✏️ Editar</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Tabela de Prioridades
+      const prioBody = document.getElementById('table-prio-body');
+      if (prioBody) {
+        prioBody.innerHTML = PRIORITY_CONFIG.map(p => `
+          <tr>
+            <td style="font-weight: 700;">${p.nome}</td>
+            <td>
+              <span class="color-pill"><span class="color-swatch" style="background: ${p.cor};"></span>${p.cor}</span>
+            </td>
+            <td>
+              <span class="prio-badge" style="color: ${p.cor}; background: ${p.bg}; border: 1px solid ${p.borda}; margin-left: 0;">${p.nome}</span>
+            </td>
+            <td style="text-align: right;">
+              <button class="btn-icon" onclick="openEditPrioModal('${p.nome}', '${p.cor}')">✏️ Editar</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function openNewStatusModal() {
+      document.getElementById('status-modal-title').innerText = "➕ Cadastrar Novo Status no SQL Server";
+      document.getElementById('status-nome').value = "";
+      document.getElementById('status-borda').value = "#38bdf8";
+      document.getElementById('status-cor').value = "#38bdf8";
+      document.getElementById('statusModal').style.display = "flex";
+    }
+
+    function openEditStatusModal(nome, borda, cor) {
+      document.getElementById('status-modal-title').innerText = "✏️ Editar Status: " + nome;
+      document.getElementById('status-nome').value = nome;
+      document.getElementById('status-borda').value = borda;
+      document.getElementById('status-borda-picker').value = borda.substring(0, 7);
+      document.getElementById('status-cor').value = cor;
+      document.getElementById('status-cor-picker').value = cor.substring(0, 7);
+      document.getElementById('statusModal').style.display = "flex";
+    }
+
+    function closeStatusModal() {
+      document.getElementById('statusModal').style.display = "none";
+    }
+
+    async function saveStatusDomain() {
+      const nome = document.getElementById('status-nome').value.trim();
+      const borda = document.getElementById('status-borda').value.trim();
+      const cor = document.getElementById('status-cor').value.trim();
+      if (!nome) return alert("Digite o nome do status.");
+
+      try {
+        const res = await fetch('/api/dominios/status/salvar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, borda, cor })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeStatusModal();
+          showToast("✅ Status salvo no SQL Server!");
+          await loadDominios();
+          renderDomainsManagementUI();
+          renderTasks();
+        }
+      } catch (e) {
+        alert("Erro ao salvar status no SQL Server.");
+      }
+    }
+
+    function openNewPrioModal() {
+      document.getElementById('prio-modal-title').innerText = "➕ Cadastrar Nova Prioridade no SQL Server";
+      document.getElementById('prio-nome').value = "";
+      document.getElementById('prio-cor').value = "#f87171";
+      document.getElementById('prioModal').style.display = "flex";
+    }
+
+    function openEditPrioModal(nome, cor) {
+      document.getElementById('prio-modal-title').innerText = "✏️ Editar Prioridade: " + nome;
+      document.getElementById('prio-nome').value = nome;
+      document.getElementById('prio-cor').value = cor;
+      document.getElementById('prio-cor-picker').value = cor.substring(0, 7);
+      document.getElementById('prioModal').style.display = "flex";
+    }
+
+    function closePrioModal() {
+      document.getElementById('prioModal').style.display = "none";
+    }
+
+    async function savePrioDomain() {
+      const nome = document.getElementById('prio-nome').value.trim();
+      const cor = document.getElementById('prio-cor').value.trim();
+      if (!nome) return alert("Digite o nome da prioridade.");
+
+      try {
+        const res = await fetch('/api/dominios/prioridade/salvar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, cor })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closePrioModal();
+          showToast("✅ Prioridade salva no SQL Server!");
+          await loadDominios();
+          renderDomainsManagementUI();
+          renderTasks();
+        }
+      } catch (e) {
+        alert("Erro ao salvar prioridade no SQL Server.");
+      }
+    }
+
+    // ==================== SINCRONIZAÇÃO NUVEM ====================
+    async function triggerCloudSync() {
+      const btn = document.getElementById('btn-sync-cloud');
+      btn.disabled = true;
+      btn.innerText = "⏳ Sincronizando...";
+
+      try {
+        const res = await fetch('/api/sync', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast("✅ Sincronizado com a nuvem!");
+          await updateConnectionStatusBadge();
+          await loadDominios();
+          await loadTasks();
+        } else {
+          showToast("⚠️ " + (data.error || "Falha na sincronização"));
+        }
+      } catch (e) {
+        showToast("⚠️ Nuvem inacessível (Stand Alone ativo)");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "🔄 Sincronizar Nuvem";
+      }
+    }
+
+    // ==================== MODAL NOVA TAREFA / EDIÇÃO ====================
+    function openNewTaskModal() {
+      populateStaticSelects();
+      document.getElementById('newTaskModal').style.display = 'flex';
+      document.getElementById('task-titulo').focus();
+    }
+    function closeNewTaskModal() {
+      document.getElementById('newTaskModal').style.display = 'none';
+    }
+
+    function onTaskProjChange() {
+      const projVal = (document.getElementById('task-proj').value || '').toLowerCase();
+      document.getElementById('task-tipo').value = (projVal.includes('pessoal') || projVal.includes('hábito')) ? "Pessoal" : "Profissional";
+    }
+
+    async function saveNewTask() {
+      const proj = document.getElementById('task-proj').value.trim();
+      const tipo = document.getElementById('task-tipo').value;
+      const titulo = document.getElementById('task-titulo').value.trim();
+      const prio = document.getElementById('task-prio').value;
+      const obs = document.getElementById('task-obs').value.trim();
+      const rec = parseInt(document.getElementById('task-rec').value || '0');
+
+      if (!titulo) return alert("Por favor, digite o título da tarefa.");
+
+      try {
+        const res = await fetch('/api/tarefa/nova', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projeto: proj, tipo, titulo, prioridade: prio, observacoes: obs, recorrencia_dias: rec })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeNewTaskModal();
+          document.getElementById('task-titulo').value = '';
+          document.getElementById('task-obs').value = '';
+          showToast('✅ Tarefa cadastrada no SQL Server!');
+          loadTasks();
+        }
+      } catch (e) {
+        alert("Erro ao salvar no SQL Server.");
+      }
+    }
+
+    function openEditTaskModal(codigo) {
+      const task = allTasks.find(t => t.codigo === codigo);
+      if (!task) return;
+
+      document.getElementById('edit-task-cod').innerText = task.codigo;
+      document.getElementById('edit-task-titulo').value = task.titulo || '';
+      document.getElementById('edit-task-proj').value = task.projeto || '';
+      document.getElementById('edit-task-tipo').value = task.tipo || 'Profissional';
+      document.getElementById('edit-task-prio').innerHTML = renderPriorityOptionsHtml(task.prioridade || 'Alta');
+      document.getElementById('edit-task-status').innerHTML = renderStatusOptionsHtml(task.status || 'Não iniciada');
+      document.getElementById('edit-task-rec').value = task.recorrencia_dias || 0;
+      document.getElementById('edit-task-obs').value = task.observacoes || '';
+
+      document.getElementById('editTaskModal').style.display = 'flex';
+    }
+
+    function closeEditTaskModal() {
+      document.getElementById('editTaskModal').style.display = 'none';
+    }
+
+    async function saveEditTask() {
+      const codigo = document.getElementById('edit-task-cod').innerText;
+      const titulo = document.getElementById('edit-task-titulo').value.trim();
+      const proj = document.getElementById('edit-task-proj').value.trim();
+      const tipo = document.getElementById('edit-task-tipo').value;
+      const prio = document.getElementById('edit-task-prio').value;
+      const status = document.getElementById('edit-task-status').value;
+      const rec = parseInt(document.getElementById('edit-task-rec').value || '0');
+      const obs = document.getElementById('edit-task-obs').value.trim();
+
+      if (!titulo) return alert("O título não pode ficar vazio.");
+
+      try {
+        const res = await fetch('/api/tarefa/editar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codigo, titulo, projeto: proj, tipo, prioridade: prio, status, recorrencia_dias: rec, observacoes: obs })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeEditTaskModal();
+          showToast('✏️ Tarefa atualizada no SQL Server!');
+          loadTasks();
+        }
+      } catch (e) {
+        alert("Erro ao editar no SQL Server.");
+      }
+    }
+
+    async function deleteTask(codigo) {
+      if (!confirm('Deseja excluir a tarefa ' + codigo + ' no SQL Server?')) return;
+      try {
+        await fetch('/api/tarefa/excluir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codigo })
+        });
+        showToast('🗑️ Tarefa excluída!');
+        loadTasks();
+      } catch (e) {
+        alert("Erro ao excluir.");
+      }
+    }
+
+    // ==================== GUIA DE CORES ====================
+    function openLegendModal() {
+      const stContainer = document.getElementById('legend-status-list');
+      if (stContainer) {
+        stContainer.innerHTML = STATUS_CONFIG.map(s => `
+          <div style="background: #0f172a; padding: 8px 12px; border-radius: 8px; border-left: 5px solid ${s.borda}; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; color: ${s.cor}; font-size: 0.85rem;">${s.nome}</span>
+            <span style="font-size: 0.75rem; color: #cbd5e1;">Borda lateral</span>
+          </div>
+        `).join('');
+      }
+      const prContainer = document.getElementById('legend-prio-list');
+      if (prContainer) {
+        prContainer.innerHTML = PRIORITY_CONFIG.map(p => `
+          <div style="flex: 1; min-width: 100px; background: #0f172a; padding: 8px 10px; border-radius: 8px; border: 1px solid ${p.borda}; text-align: center;">
+            <span class="prio-badge" style="color: ${p.cor}; background: ${p.bg}; border: 1px solid ${p.borda}; margin-left: 0;">${p.nome}</span>
+          </div>
+        `).join('');
+      }
+      document.getElementById('legendModal').style.display = 'flex';
+    }
+    function closeLegendModal() {
+      document.getElementById('legendModal').style.display = 'none';
+    }
+
+    async function updateConnectionStatusBadge() {
+      const badge = document.getElementById('badge-db-status');
+      if (!badge) return;
+      try {
+        const res = await fetch('/api/status_conexao');
+        const data = await res.json();
+        badge.className = 'badge-desktop';
+
+        if (data.modo === 'sincronizado') {
+          badge.classList.add('badge-sql-ok');
+          badge.innerText = '🟢 Online & Sincronizado (SQL Server + Nuvem)';
+          badge.title = data.ultima_sync ? `Última sincronização: ${data.ultima_sync}` : 'Sincronizado';
+        } else if (data.modo === 'base_forte_offline') {
+          badge.classList.add('badge-sql-fallback');
+          badge.innerText = '⚡ Base Forte (SQL Server Ativo | Nuvem Offline)';
+          badge.title = 'Operando localmente no SQL Server ASSISTPE sem internet';
+        } else if (data.modo === 'nuvem_online') {
+          badge.classList.add('badge-cloud-ok');
+          badge.innerText = '☁️ Modo Nuvem (SQL Server Inativo | Nuvem Online)';
+          badge.title = 'Operando diretamente conectado ao servidor em Nuvem';
+        } else {
+          badge.classList.add('badge-sql-ok');
+          badge.innerText = data.descricao || '🟢 Conectado';
+        }
+      } catch (e) {
+        badge.className = 'badge-desktop badge-sql-fallback';
+        badge.innerText = '⚡ Stand Alone Offline';
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    // Heartbeat Keep-Alive com o servidor local
+    function sendHeartbeat() {
+      fetch('/api/heartbeat').catch(() => {});
+    }
+
+    // Inicialização da Página
+    window.addEventListener('DOMContentLoaded', async () => {
+      sendHeartbeat();
+      setInterval(sendHeartbeat, 4000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) sendHeartbeat();
+      });
+      window.addEventListener('focus', sendHeartbeat);
+
+      await updateConnectionStatusBadge();
+      await loadDominios();
+      await loadTasks();
+      await loadProjetos();
+      setInterval(updateConnectionStatusBadge, 15000);
+    });
+  </script>
+</body>
+</html>

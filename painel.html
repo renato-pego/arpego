@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Assistente Pessoal - ARPego</title>
+  
+  <!-- PWA & Mobile Standalone -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ARPego">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --success: #22c55e;
+      --warning: #eab308;
+      --danger: #ef4444;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 12px; max-width: 900px; margin: 0 auto; -webkit-font-smoothing: antialiased; }
+    
+    header { padding: 12px 6px; border-bottom: 1px solid var(--card-border); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 1.2rem; font-weight: 800; color: #fff; }
+
+    .net-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; }
+    .net-badge.online { background: #052e16; color: #4ade80; border: 1px solid #16a34a; }
+    .net-badge.offline { background: #451a03; color: #fb923c; border: 1px solid #ea580c; }
+    
+    .btn-install-pwa { background: #0284c7; color: #ffffff; border: none; font-size: 0.75rem; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-install-pwa:hover { background: #0369a1; }
+    
+    .brand-btn { background: transparent; border: 1.5px solid #0284c7; border-radius: 10px; padding: 2px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; outline: none; }
+    .brand-btn:hover, .brand-btn:active { transform: scale(1.08); border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+    .brand-icon { width: 28px; height: 28px; border-radius: 8px; display: block; }
+    
+    /* Top Main Tabs */
+    .main-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .main-tab { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted); padding: 10px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; text-align: center; cursor: pointer; transition: 0.2s; }
+    .main-tab.active { background: var(--primary); color: #0f172a; border-color: var(--primary); }
+
+    /* Metrics */
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .metric-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px; text-align: center; }
+    .metric-num { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+    .metric-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+
+    /* Card de Filtros Compacto (4 Elementos) */
+    .filters-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .filters-row-combos {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      justify-content: space-between;
+    }
+    .filter-box-half {
+      width: 48%; /* ~45% a 48% da largura da tela */
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .filter-label {
+      font-size: 0.70rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .filter-select {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: #f8fafc;
+      padding: 7px 8px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      width: 100%;
+      text-overflow: ellipsis;
+      transition: border-color 0.15s;
+    }
+    .filter-select:hover, .filter-select:focus {
+      border-color: var(--primary);
+    }
+    .filters-row-actions {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    .btn-clear-filters {
+      background: transparent;
+      border: 1px solid #475569;
+      color: var(--text-muted);
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 0.80rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+      white-space: nowrap;
+      height: 34px;
+      flex: 1;
+      text-align: center;
+    }
+    .btn-clear-filters:hover {
+      color: #fff;
+      border-color: #ef4444;
+      background: #ef444420;
+    }
+    .btn-new-task {
+      background: var(--primary);
+      color: #0f172a;
+      border: 1px solid var(--primary);
+      font-weight: 800;
+      padding: 7px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 0.82rem;
+      height: 34px;
+      flex: 1.5;
+      text-align: center;
+      transition: opacity 0.15s;
+    }
+    .btn-new-task:hover {
+      opacity: 0.9;
+    }
+
+    @media (min-width: 768px) {
+      .filters-container {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+      .filters-row-combos {
+        width: auto;
+        flex: 1;
+        max-width: 600px;
+      }
+      .filters-row-actions {
+        width: auto;
+        flex: 0 0 auto;
+      }
+      .btn-clear-filters, .btn-new-task {
+        flex: 0 0 auto;
+      }
+    }
+
+    .prio-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-left: 6px;
+      text-transform: uppercase;
+    }
+    .prio-alta { color: #f87171; background: #ef444420; border: 1px solid #ef444450; }
+    .prio-media { color: #fbbf24; background: #f59e0b20; border: 1px solid #f59e0b50; }
+    .prio-baixa { color: #60a5fa; background: #3b82f620; border: 1px solid #3b82f650; }
+
+    /* Tasks Cards */
+    .tasks-grid { display: flex; flex-direction: column; gap: 12px; }
+    .task-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; }
+    .task-card.in-progress { border-left: 4px solid var(--primary); }
+    .task-card.testing { border-left: 4px solid var(--success); }
+    .task-card.waiting { border-left: 4px solid var(--warning); }
+    .task-card.completed { opacity: 0.6; border-left: 4px solid #64748b; }
+
+    .task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+    .task-id { font-size: 0.8rem; font-weight: 700; color: var(--primary); background: #0369a120; padding: 2px 6px; border-radius: 6px; }
+    .task-client { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    .task-title { font-size: 0.95rem; font-weight: 600; line-height: 1.35; margin-bottom: 6px; color: #f1f5f9; }
+
+    .status-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 8px; text-transform: uppercase; }
+    .status-in-progress { background: #0369a130; color: #38bdf8; border: 1px solid #0284c7; }
+    .status-testing { background: #065f4630; color: #4ade80; border: 1px solid #22c55e; }
+    .status-waiting { background: #854d0e30; color: #facc15; border: 1px solid #eab308; }
+    .status-planned { background: #334155; color: #cbd5e1; }
+    .status-done { background: #1e293b; color: #94a3b8; text-decoration: line-through; }
+
+    .support-tip { background: #0f172a80; border: 1px dashed var(--card-border); border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; color: #cbd5e1; margin-top: 8px; }
+    .tip-icon { color: var(--warning); margin-right: 4px; }
+
+    .status-select { background: #0f172a; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--card-border); cursor: pointer; outline: none; }
+    .status-select.in-progress { color: #38bdf8; border-color: #0284c7; }
+    .status-select.testing { color: #4ade80; border-color: #22c55e; }
+    .status-select.waiting { color: #facc15; border-color: #eab308; }
+    .status-select.done { color: #94a3b8; border-color: #64748b; }
+
+    .btn-icon { background: transparent; border: 1px solid #475569; color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: 0.15s; }
+    .btn-icon:hover { color: #fff; border-color: #94a3b8; }
+
+    /* VAULT (COFRE) STYLES */
+    .vault-section { display: none; }
+    .vault-lock-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px; text-align: center; max-width: 400px; margin: 30px auto; }
+    .vault-lock-icon { font-size: 3rem; margin-bottom: 12px; }
+    .vault-input { width: 100%; padding: 12px; font-size: 1.1rem; border-radius: 10px; border: 1px solid var(--card-border); background: #0f172a; color: #fff; text-align: center; margin-bottom: 14px; letter-spacing: 4px; }
+    .vault-btn { width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; }
+    .vault-btn-primary { background: var(--purple); color: #fff; }
+
+    .vault-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .cred-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; margin-bottom: 12px; border-left: 4px solid var(--purple); }
+    .cred-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .cred-title { font-size: 1rem; font-weight: 700; color: #fff; }
+    .cred-badge { font-size: 0.7rem; background: #6b21a830; color: #d8b4fe; border: 1px solid var(--purple); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+    
+    .cred-field { display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 0.85rem; }
+    .cred-label { color: var(--text-muted); font-size: 0.75rem; }
+    .cred-val { font-family: monospace; font-weight: 600; color: #e2e8f0; }
+    .btn-copy { background: transparent; border: 1px solid #475569; color: var(--primary); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+
+    /* Modal Form */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; width: 100%; max-width: 450px; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; color: #fff; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: #0f172a; color: #fff; font-size: 0.9rem; }
+
+    .user-pill {
+      background: #1e293b;
+      border: 1px solid #38bdf850;
+      color: #38bdf8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .user-pill:hover {
+      background: #0284c725;
+      border-color: #38bdf8;
+      transform: scale(1.02);
+    }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: #0f172a; padding: 10px 20px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; display: none; z-index: 3000; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="brand-btn" onclick="openLegendModal()" title="Clique para ver o significado das cores" aria-label="Legenda de Cores">
+        <img src="/icon.svg" alt="ARPego" class="brand-icon">
+      </button>
+      <h1 onclick="openLegendModal()" style="cursor: pointer;" title="Clique para ver o significado das cores">Assistente Pessoal - ARPego</h1>
+      <span id="net-badge" class="net-badge online" title="Status da Conexão">🟢 Online</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <div id="user-pill" class="user-pill" onclick="promptSwitchUser()" title="Usuário conectado. Clique para trocar ou sair." style="display: none;">
+        👤 <span id="user-name-display">Renato</span> <span style="font-size:0.65rem; color:#94a3b8; margin-left:2px;">(Sair)</span>
+      </div>
+      <button id="btn-install-pwa" class="btn-install-pwa" onclick="showInstallModal()">📲 Instalar App</button>
+      <span style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">☁️ Cloud Live</span>
+    </div>
+  </header>
+
+  <!-- Navegação Principal -->
+  <nav class="main-nav">
+    <div class="main-tab active" id="tab-btn-tasks" onclick="switchMainTab('tasks')">📋 Tarefas</div>
+    <div class="main-tab" id="tab-btn-vault" onclick="switchMainTab('vault')">🔐 Cofre Seguro</div>
+  </nav>
+
+  <!-- ==================== SEÇÃO 1: TAREFAS ==================== -->
+  <section id="section-tasks">
+    <section class="metrics">
+      <div class="metric-card">
+        <div class="metric-num" id="metric-pendentes">--</div>
+        <div class="metric-label">Pendentes</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" id="metric-testes" style="color: var(--success);">--</div>
+        <div class="metric-label">Em Testes</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" id="metric-concluidas" style="color: var(--text-muted);">--</div>
+        <div class="metric-label">Concluídas</div>
+      </div>
+    </section>
+
+    <!-- Card de Filtros Compacto (4 Elementos) -->
+    <div class="filters-container">
+      <div class="filters-row-combos">
+        <!-- 1. Filtro por -->
+        <div class="filter-box-half">
+          <label class="filter-label">1. Filtro por</label>
+          <select id="filter-tipo" class="filter-select" onchange="onFilterTipoChange()">
+            <option value="all">🔍 Filtro por...</option>
+            <option value="status">⚡ Status</option>
+            <option value="projeto">📁 Projeto / Cliente</option>
+            <option value="prioridade">🎯 Prioridade</option>
+          </select>
+        </div>
+
+        <!-- 2. Chave do filtro -->
+        <div class="filter-box-half">
+          <label class="filter-label">2. Chave do filtro</label>
+          <select id="filter-chave" class="filter-select" onchange="onFilterChaveChange()">
+            <option value="all">-- Todos os registros --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tags de filtros ativos combinados -->
+      <div id="active-filter-tags" style="display: none; flex-wrap: wrap; gap: 6px; width: 100%;"></div>
+
+      <div class="filters-row-actions">
+        <!-- 3. Botão limpar -->
+        <button id="btn-clear-filters" class="btn-clear-filters" onclick="clearFilters()" title="Redefinir filtro">✕ Limpar</button>
+
+        <!-- 4. Botão nova tarefa -->
+        <button class="btn-new-task" onclick="openNewTaskModal()">➕ Nova Tarefa</button>
+      </div>
+    </div>
+
+    <main class="tasks-grid" id="taskList">
+      <!-- As tarefas serão carregadas em tempo real da API /api/tarefas -->
+      <div style="text-align: center; color: var(--text-muted); padding: 30px; font-size: 0.9rem;" id="task-loading">
+        ⏳ Carregando tarefas do banco de dados...
+      </div>
+    </main>
+  </section>
+
+  <!-- ==================== SEÇÃO 2: COFRE SEGURO (VAULT) ==================== -->
+  <section id="section-vault" class="vault-section">
+    <!-- Tela de Bloqueio (PIN) -->
+    <div id="vault-locked" class="vault-lock-box">
+      <div class="vault-lock-icon">🔒</div>
+      <h2 style="font-size: 1.1rem; margin-bottom: 8px;">Cofre Criptografado</h2>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
+        Digite seu PIN mestre para descriptografar os acessos e senhas com segurança zero-knowledge (AES-256).
+      </p>
+      <input type="password" id="vault-pin-input" class="vault-input" placeholder="••••" maxlength="8" autofocus>
+      <button class="vault-btn vault-btn-primary" onclick="unlockVault()">🔓 Desbloquear Cofre</button>
+    </div>
+
+    <!-- Tela do Cofre Desbloqueado -->
+    <div id="vault-unlocked" style="display: none;">
+      <div class="vault-header">
+        <div>
+          <h2 style="font-size: 1.1rem;">🔑 Seus Acessos Seguros</h2>
+          <span style="font-size: 0.75rem; color: var(--success);">🛡️ Criptografia AES-GCM ativa</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="action-btn" style="background: var(--purple); color: #fff; border-color: var(--purple);" onclick="openNewCredModal()">➕ Novo Acesso</button>
+          <button class="action-btn" onclick="lockVault()">🔒 Bloquear</button>
+        </div>
+      </div>
+
+      <div id="credList">
+        <!-- Cartões de Credenciais serão renderizados aqui dinamicamente -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal para Nova Tarefa -->
+  <div id="newTaskModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-title">📋 Cadastrar Nova Tarefa</div>
+      
+      <div class="form-group">
+        <label>Projeto / Cliente (escolha ou digite um novo):</label>
+        <input type="text" id="task-proj" list="projetos-list" class="form-control" placeholder="Ex: IFF Argentina, Novartis, Pessoal..." onchange="onTaskProjChange()">
+        <datalist id="projetos-list">
+          <option value="IFF Argentina">
+          <option value="IFF Brasil / México">
+          <option value="IFF Geral / Contábil">
+          <option value="Unimed Campinas">
+          <option value="Eurofarma">
+          <option value="Caldic">
+          <option value="Pessoal / Hábitos">
+        </datalist>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo:</label>
+        <select id="task-tipo" class="form-control">
+          <option value="Profissional">Profissional</option>
+          <option value="Pessoal">Pessoal</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Título da Tarefa:</label>
+        <input type="text" id="task-titulo" class="form-control" placeholder="Ex: Ajustar BAdI de cálculo do frete">
+      </div>
+
+      <div class="form-group">
+        <label>Prioridade:</label>
+        <select id="task-prio" class="form-control">
+          <option value="Alta">Alta</option>
+          <option value="Média">Média</option>
+          <option value="Baixa">Baixa</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Recursividade (Reinício às 04:00):</label>
+        <select id="task-rec" class="form-control">
+          <option value="0">Nenhuma (tarefa avulsa)</option>
+          <option value="1">Diária (reinicia todos os dias às 04:00)</option>
+          <option value="2">A cada 2 dias (às 04:00)</option>
+          <option value="3">A cada 3 dias (às 04:00)</option>
+          <option value="5">A cada 5 dias (às 04:00)</option>
+          <option value="7">Semanal (a cada 7 dias às 04:00)</option>
+          <option value="15">Quinzenal (a cada 15 dias às 04:00)</option>
+          <option value="30">Mensal (a cada 30 dias às 04:00)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Dica de Apoio / Observações (opcional):</label>
+        <input type="text" id="task-obs" class="form-control" placeholder="Ex: Conferir tabela / programa Z...">
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="vault-btn vault-btn-primary" style="background: var(--primary); color: #0f172a;" onclick="saveNewTask()">Criar Tarefa</button>
+        <button class="action-btn" style="width: 100px;" onclick="closeNewTaskModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Editar Tarefa -->
+  <div id="editTaskModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-title">✏️ Editar Tarefa <span id="edit-task-cod" style="color: var(--primary);"></span></div>
+      
+      <div class="form-group">
+        <label>Projeto / Cliente (escolha ou digite um novo):</label>
+        <input type="text" id="edit-task-proj" list="projetos-list" class="form-control" placeholder="Ex: IFF Argentina, Novartis, Pessoal..." onchange="onEditTaskProjChange()">
+      </div>
+
+      <div class="form-group">
+        <label>Tipo:</label>
+        <select id="edit-task-tipo" class="form-control">
+          <option value="Profissional">Profissional</option>
+          <option value="Pessoal">Pessoal</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Título da Tarefa:</label>
+        <input type="text" id="edit-task-titulo" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label>Status:</label>
+        <select id="edit-task-status" class="form-control">
+          <option value="Não iniciada">Não iniciada</option>
+          <option value="Em andamento">Em andamento</option>
+          <option value="Aguardando retorno">Aguardando retorno</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Em testes">Em testes</option>
+          <option value="Concluída">Concluída</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Prioridade:</label>
+        <select id="edit-task-prio" class="form-control">
+          <option value="Alta">Alta</option>
+          <option value="Média">Média</option>
+          <option value="Baixa">Baixa</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Recursividade (Reinício às 04:00):</label>
+        <select id="edit-task-rec" class="form-control">
+          <option value="0">Nenhuma (tarefa avulsa)</option>
+          <option value="1">Diária (reinicia todos os dias às 04:00)</option>
+          <option value="2">A cada 2 dias (às 04:00)</option>
+          <option value="3">A cada 3 dias (às 04:00)</option>
+          <option value="5">A cada 5 dias (às 04:00)</option>
+          <option value="7">Semanal (a cada 7 dias às 04:00)</option>
+          <option value="15">Quinzenal (a cada 15 dias às 04:00)</option>
+          <option value="30">Mensal (a cada 30 dias às 04:00)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Dica de Apoio / Observações (opcional):</label>
+        <input type="text" id="edit-task-obs" class="form-control">
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="vault-btn vault-btn-primary" style="background: var(--primary); color: #0f172a;" onclick="saveEditTask()">Salvar Alterações</button>
+        <button class="action-btn" style="width: 100px;" onclick="closeEditTaskModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Novo Acesso -->
+  <div id="newCredModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-title">🔐 Cadastrar Novo Acesso</div>
+      
+      <div class="form-group">
+        <label>Categoria:</label>
+        <select id="cred-cat" class="form-control">
+          <option value="Segurança / BitLocker">Segurança / BitLocker / Backup</option>
+          <option value="SAP">SAP (ABAP / Mandantes)</option>
+          <option value="Protheus">Totvs Protheus</option>
+          <option value="VPN">VPN / Conexão Remota</option>
+          <option value="Portal">Portal Web / Cliente</option>
+          <option value="Pessoal">Pessoal / Outro</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Título / Identificação:</label>
+        <input type="text" id="cred-title" class="form-control" placeholder="Ex: IFF Argentina - SAP QAS">
+      </div>
+
+      <div class="form-group">
+        <label>Usuário / Login:</label>
+        <input type="text" id="cred-user" class="form-control" placeholder="Ex: RPEGO ou renato@...">
+      </div>
+
+      <div class="form-group">
+        <label>Senha:</label>
+        <input type="password" id="cred-pass" class="form-control" placeholder="Senha do ambiente">
+      </div>
+
+      <div class="form-group">
+        <label>Observações (Mandante, Servidor, IP):</label>
+        <input type="text" id="cred-obs" class="form-control" placeholder="Ex: Mandante 200, Servidor 10.20.6.15">
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button class="vault-btn vault-btn-primary" onclick="saveNewCredential()">Salvar Criptografado</button>
+        <button class="action-btn" style="width: 100px;" onclick="closeNewCredModal()">Cancelar</button>
+      </div>
+    </div>
+  <!-- Modal Legenda de Cores e Guia Visual -->
+  <div id="legendModal" class="modal" onclick="if(event.target === this) closeLegendModal()">
+    <div class="modal-box" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <img src="/icon.svg" alt="ARPego" style="width: 32px; height: 32px; border-radius: 8px;">
+          <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">Guia Visual de Cores</div>
+        </div>
+        <button class="btn-icon" onclick="closeLegendModal()" style="font-size: 1.1rem; padding: 2px 8px;">✕</button>
+      </div>
+
+      <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 14px;">
+        Entenda o significado de cada indicador visual para acompanhar suas tarefas com rapidez:
+      </div>
+
+      <!-- Bloco 1: Borda Lateral (Status) -->
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+          🚦 1. Borda Lateral Esquerda (Status de Andamento)
+        </div>
+        <div id="legend-status-list" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- Renderizado dinamicamente via STATUS_CONFIG -->
+        </div>
+      </div>
+
+      <!-- Bloco 2: Crachás de Prioridade -->
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+          🏷️ 2. Crachás de Prioridade (Nível de Urgência)
+        </div>
+        <div id="legend-prio-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <!-- Renderizado dinamicamente via PRIORITY_CONFIG -->
+        </div>
+      </div>
+
+      <!-- Bloco 3: Indicadores Extras -->
+      <div style="margin-bottom: 18px;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+          ⚙️ 3. Indicadores Especiais
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: #0f172a; padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 0.72rem; color: var(--purple); background: #6b21a820; border: 1px solid #a855f7; padding: 2px 6px; border-radius: 6px; white-space: nowrap;">🔄 A cada 1d</span>
+            <span style="font-size: 0.75rem; color: #cbd5e1;">Recorrência automática (reinicia às 04:00 BRT)</span>
+          </div>
+          <div style="background: #0f172a; padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+            <span class="task-id" style="white-space: nowrap;">#T-01</span>
+            <span style="font-size: 0.75rem; color: #cbd5e1;">Código único e permanente da tarefa</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="vault-btn vault-btn-primary" style="background: #0284c7; width: 100%; padding: 10px;" onclick="closeLegendModal()">Entendido</button>
+    </div>
+  </div>
+
+  <!-- Modal de Autenticação / Segregação de Usuário -->
+  <div id="authModal" class="modal" style="display: none;">
+    <div class="modal-box" style="max-width: 400px;">
+      <div style="text-align: center; margin-bottom: 16px;">
+        <img src="/icon.svg" alt="ARPego" style="width: 46px; height: 46px; border-radius: 12px; margin-bottom: 6px;">
+        <h2 style="font-size: 1.2rem; font-weight: 800; color: #fff;">ARPego - Assistente Pessoal</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Acesse seu espaço de trabalho isolado</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 16px; background: #0f172a; padding: 4px; border-radius: 10px;">
+        <button id="auth-tab-login" class="main-tab active" style="padding: 7px; font-size: 0.82rem; border-radius: 8px;" onclick="switchAuthTab('login')">Entrar</button>
+        <button id="auth-tab-cad" class="main-tab" style="padding: 7px; font-size: 0.82rem; border-radius: 8px;" onclick="switchAuthTab('cad')">Criar Conta</button>
+      </div>
+
+      <div id="auth-error" style="display: none; background: #ef444420; border: 1px solid #ef444450; color: #f87171; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px;"></div>
+
+      <!-- Form Login -->
+      <form id="form-login" onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label>Usuário / Login</label>
+          <input type="text" id="login-user" class="form-control" placeholder="Ex: Renato" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="login-pass" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="vault-btn vault-btn-primary" style="background: #0284c7; width: 100%; margin-top: 8px;" id="btn-login-submit">🚀 Entrar</button>
+      </form>
+
+      <!-- Form Cadastro -->
+      <form id="form-cad" onsubmit="handleCadSubmit(event)" style="display: none;">
+        <div class="form-group">
+          <label>Seu Nome</label>
+          <input type="text" id="cad-nome" class="form-control" placeholder="Ex: Carlos Silva" required>
+        </div>
+        <div class="form-group">
+          <label>Usuário (Login único)</label>
+          <input type="text" id="cad-user" class="form-control" placeholder="Ex: carlos" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Crie uma Senha</label>
+          <input type="password" id="cad-pass" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="vault-btn vault-btn-primary" style="background: #16a34a; width: 100%; margin-top: 8px;" id="btn-cad-submit">✨ Criar Minha Conta e Entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Instruções de Download e Instalação (Mobile e Windows) -->
+  <div id="installModal" class="modal" style="display: none;">
+    <div class="modal-box" style="max-width: 480px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 class="modal-title" style="margin-bottom: 0;">📲 Baixar e Instalar o ARPego</h3>
+        <button class="btn-icon" onclick="closeInstallModal()" style="font-size: 1.1rem; padding: 2px 8px;">✕</button>
+      </div>
+
+      <p style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 14px;">
+        O ARPego funciona como aplicativo nativo direto no seu dispositivo (sem lojas de apps, super leve e ultra-rápido):
+      </p>
+
+      <div id="install-pwa-direct-box" style="display: none; margin-bottom: 14px;">
+        <button class="vault-btn vault-btn-primary" style="background: #0284c7; width: 100%; font-size: 0.95rem;" onclick="triggerDirectPWAInstall()">
+          ⚡ Instalar Agora no Dispositivo
+        </button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem;">
+        <div style="background: #0f172a; padding: 10px 12px; border-radius: 10px; border-left: 4px solid #38bdf8;">
+          <div style="font-weight: 700; color: #38bdf8; margin-bottom: 4px;">💻 No Computador (Windows / Mac)</div>
+          <div style="color: #cbd5e1;">No navegador (Edge ou Chrome), clique no ícone <b>⊕ Instalar</b> na barra de endereços (canto superior direito) ou acesse o menu <b>⋮ > Aplicativos > Instalar ARPego</b>. Ele abrirá em janela própria na barra de tarefas!</div>
+        </div>
+
+        <div style="background: #0f172a; padding: 10px 12px; border-radius: 10px; border-left: 4px solid #4ade80;">
+          <div style="font-weight: 700; color: #4ade80; margin-bottom: 4px;">📱 No Celular Android (Chrome)</div>
+          <div style="color: #cbd5e1;">Toque no menu do Chrome (os <b>3 pontinhos ⋮</b> no topo) e escolha <b>"Instalar aplicativo"</b> ou <b>"Adicionar à tela inicial"</b>. O ícone aparecerá junto aos seus outros apps.</div>
+        </div>
+
+        <div style="background: #0f172a; padding: 10px 12px; border-radius: 10px; border-left: 4px solid #fbbf24;">
+          <div style="font-weight: 700; color: #fbbf24; margin-bottom: 4px;">🍏 No iPhone / iPad (Safari)</div>
+          <div style="color: #cbd5e1;">No navegador Safari, toque no botão <b>Compartilhar (quadrado com seta ⎋)</b> na barra inferior e escolha <b>"Adicionar à Tela de Início"</b>.</div>
+        </div>
+      </div>
+
+      <button class="vault-btn vault-btn-primary" style="background: #334155; width: 100%; margin-top: 14px; padding: 9px;" onclick="closeInstallModal()">Fechar</button>
+    </div>
+  </div>
+
+  <div id="toast">✅ Concluído!</div>
+
+  <script>
+    // ==================== AUTENTICAÇÃO E SEGREGAÇÃO MULTI-USUÁRIO ====================
+    const AUTH_USER_KEY = 'arpego_auth_user';
+
+    function getAuthUser() {
+      try {
+        const raw = localStorage.getItem(AUTH_USER_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch(e) { return null; }
+    }
+
+    function setAuthUser(user) {
+      if (user) {
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+        updateUserUI(user);
+      }
+    }
+
+    function clearAuthUser() {
+      localStorage.removeItem(AUTH_USER_KEY);
+      location.reload();
+    }
+
+    function updateUserUI(user) {
+      const pill = document.getElementById('user-pill');
+      const nameSpan = document.getElementById('user-name-display');
+      if (user && user.login) {
+        if (nameSpan) nameSpan.innerText = user.nome ? user.nome.split(' ')[0] : user.login;
+        if (pill) pill.style.display = 'inline-flex';
+      } else {
+        if (pill) pill.style.display = 'none';
+      }
+    }
+
+    function openAuthModal(initialTab = 'login') {
+      const modal = document.getElementById('authModal');
+      if (modal) modal.style.display = 'flex';
+      switchAuthTab(initialTab);
+    }
+
+    function closeAuthModal() {
+      const modal = document.getElementById('authModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function switchAuthTab(tab) {
+      const tabLogin = document.getElementById('auth-tab-login');
+      const tabCad = document.getElementById('auth-tab-cad');
+      const formLogin = document.getElementById('form-login');
+      const formCad = document.getElementById('form-cad');
+      const errBox = document.getElementById('auth-error');
+      if (errBox) errBox.style.display = 'none';
+
+      if (tab === 'login') {
+        if (tabLogin) tabLogin.classList.add('active');
+        if (tabCad) tabCad.classList.remove('active');
+        if (formLogin) formLogin.style.display = 'block';
+        if (formCad) formCad.style.display = 'none';
+      } else {
+        if (tabCad) tabCad.classList.add('active');
+        if (tabLogin) tabLogin.classList.remove('active');
+        if (formCad) formCad.style.display = 'block';
+        if (formLogin) formLogin.style.display = 'none';
+      }
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const login = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value;
+      const errBox = document.getElementById('auth-error');
+      const btn = document.getElementById('btn-login-submit');
+
+      btn.disabled = true;
+      btn.innerText = 'Autenticando...';
+      if (errBox) errBox.style.display = 'none';
+
+      try {
+        const res = await originalFetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login: login, senha: pass })
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+          setAuthUser(data.user);
+          closeAuthModal();
+          showToast(`👋 Bem-vindo de volta, ${data.user.nome || data.user.login}!`);
+          loadDominios();
+          loadTasks();
+          loadProjetos();
+        } else {
+          if (errBox) {
+            errBox.innerText = data.error || 'Login ou senha inválidos.';
+            errBox.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (errBox) {
+          errBox.innerText = 'Falha ao conectar ao servidor. Verifique sua conexão.';
+          errBox.style.display = 'block';
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Entrar';
+      }
+    }
+
+    async function handleCadSubmit(e) {
+      e.preventDefault();
+      const nome = document.getElementById('cad-nome').value.trim();
+      const login = document.getElementById('cad-user').value.trim();
+      const pass = document.getElementById('cad-pass').value;
+      const errBox = document.getElementById('auth-error');
+      const btn = document.getElementById('btn-cad-submit');
+
+      btn.disabled = true;
+      btn.innerText = 'Criando conta...';
+      if (errBox) errBox.style.display = 'none';
+
+      try {
+        const res = await originalFetch('/api/auth/cadastro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome: nome, login: login, senha: pass })
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+          setAuthUser(data.user);
+          closeAuthModal();
+          showToast(`🎉 Bem-vindo ao ARPego, ${data.user.nome || data.user.login}!`);
+          loadDominios();
+          loadTasks();
+          loadProjetos();
+        } else {
+          if (errBox) {
+            errBox.innerText = data.error || 'Erro ao criar conta.';
+            errBox.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (errBox) {
+          errBox.innerText = 'Falha ao conectar ao servidor para cadastro.';
+          errBox.style.display = 'block';
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '✨ Criar Minha Conta e Entrar';
+      }
+    }
+
+    function promptSwitchUser() {
+      const u = getAuthUser();
+      const nome = u ? (u.nome || u.login) : 'Usuário';
+      if (confirm(`Conectado como: ${nome}\n\nDeseja sair para alternar para outra conta?`)) {
+        clearAuthUser();
+      }
+    }
+
+    // Interceptor global transparente de requisições Fetch com X-User-Id
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      options = options || {};
+      const user = getAuthUser();
+      if (user && user.id) {
+        let headers = options.headers;
+        if (!headers) {
+          headers = {};
+        }
+        if (headers instanceof Headers) {
+          headers.set('X-User-Id', String(user.id));
+        } else if (Array.isArray(headers)) {
+          headers.push(['X-User-Id', String(user.id)]);
+        } else {
+          headers['X-User-Id'] = String(user.id);
+        }
+        options.headers = headers;
+      }
+      return originalFetch(url, options);
+    };
+
+    // Modal de Instalação do PWA
+    function showInstallModal() {
+      const directBox = document.getElementById('install-pwa-direct-box');
+      if (deferredPrompt && directBox) {
+        directBox.style.display = 'block';
+      }
+      const modal = document.getElementById('installModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeInstallModal() {
+      const modal = document.getElementById('installModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function triggerDirectPWAInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          closeInstallModal();
+          showToast('✅ Aplicativo instalado com sucesso!');
+        }
+        deferredPrompt = null;
+      }
+    }
+
+    let vaultKey = null;
+    let cachedCreds = [];
+
+    // ==================== CONFIGURAÇÃO DE DOMÍNIOS (ÚNICA FONTE DA VERDADE) ====================
+    // Mantidos exclusivamente no Windows Desktop (SQL Server) e consumidos de forma transparente pelo celular/web
+    const CACHE_DOMINIOS_KEY = 'arpego_cached_dominios';
+
+    let STATUS_CONFIG = [
+      { id: 'nao_iniciada', nome: 'Não iniciada',       cor: '#cbd5e1', borda: '#475569', bg: '#1e293b' },
+      { id: 'em_andamento', nome: 'Em andamento',       cor: '#38bdf8', borda: '#0284c7', bg: '#0369a130' },
+      { id: 'aguardando',   nome: 'Aguardando retorno', cor: '#facc15', borda: '#eab308', bg: '#854d0e30' },
+      { id: 'pendente',     nome: 'Pendente',           cor: '#facc15', borda: '#eab308', bg: '#854d0e30' },
+      { id: 'testes',       nome: 'Em testes',          cor: '#4ade80', borda: '#22c55e', bg: '#065f4630' },
+      { id: 'concluida',    nome: 'Concluída',          cor: '#94a3b8', borda: '#64748b', bg: '#1e293b' }
+    ];
+
+    let PRIORITY_CONFIG = [
+      { id: 'alta',  nome: 'Alta',  cor: '#f87171', borda: '#ef444450', bg: '#ef444420' },
+      { id: 'media', nome: 'Média', cor: '#fbbf24', borda: '#f59e0b50', bg: '#f59e0b20' },
+      { id: 'baixa', nome: 'Baixa', cor: '#60a5fa', borda: '#3b82f650', bg: '#3b82f620' }
+    ];
+
+    function getCachedDominios() {
+      try {
+        const raw = localStorage.getItem(CACHE_DOMINIOS_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch(e) { return null; }
+    }
+
+    function setCachedDominios(dominios) {
+      try {
+        localStorage.setItem(CACHE_DOMINIOS_KEY, JSON.stringify(dominios));
+      } catch(e) {}
+    }
+
+    function applyDominios(dominios) {
+      if (!dominios) return;
+      if (Array.isArray(dominios.status) && dominios.status.length > 0) {
+        STATUS_CONFIG = dominios.status;
+      }
+      if (Array.isArray(dominios.prioridades) && dominios.prioridades.length > 0) {
+        PRIORITY_CONFIG = dominios.prioridades;
+      }
+      populateStaticSelects();
+      renderLegendContent();
+    }
+
+    async function loadDominios() {
+      const cached = getCachedDominios();
+      if (cached) applyDominios(cached);
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/dominios');
+          const data = await res.json();
+          if (data && data.status) {
+            setCachedDominios(data);
+            applyDominios(data);
+          }
+        } catch(e) {}
+      }
+    }
+
+    function getStatusConfig(statusName) {
+      if (!statusName) return STATUS_CONFIG[0];
+      const s = statusName.trim().toLowerCase();
+      if (s.includes('teste')) return STATUS_CONFIG.find(x => x.nome.toLowerCase().includes('teste')) || STATUS_CONFIG[0];
+      if (s === 'planejada' || s === 'recorrente') return STATUS_CONFIG.find(x => x.nome.toLowerCase().includes('não')) || STATUS_CONFIG[0];
+      if (s.startsWith('aguardando')) return STATUS_CONFIG.find(x => x.nome.toLowerCase().startsWith('aguardando')) || STATUS_CONFIG[0];
+      const found = STATUS_CONFIG.find(x => x.nome.toLowerCase() === s);
+      return found || STATUS_CONFIG[0];
+    }
+
+    function getPriorityConfig(prioName) {
+      if (!prioName) return PRIORITY_CONFIG[0];
+      const p = prioName.trim().toLowerCase();
+      const found = PRIORITY_CONFIG.find(x => x.nome.toLowerCase() === p);
+      return found || PRIORITY_CONFIG[0];
+    }
+
+    function renderStatusOptionsHtml(selectedStatus) {
+      const current = getStatusConfig(selectedStatus);
+      return STATUS_CONFIG.map(st => {
+        const isSel = (st.nome === current.nome) ? 'selected' : '';
+        return `<option value="${st.nome}" ${isSel}>${st.nome}</option>`;
+      }).join('');
+    }
+
+    function renderPriorityOptionsHtml(selectedPrio) {
+      const current = getPriorityConfig(selectedPrio);
+      return PRIORITY_CONFIG.map(pr => {
+        const isSel = (pr.nome === current.nome) ? 'selected' : '';
+        return `<option value="${pr.nome}" ${isSel}>${pr.nome}</option>`;
+      }).join('');
+    }
+
+    function populateStaticSelects() {
+      const taskPrioEl = document.getElementById('task-prio');
+      if (taskPrioEl) {
+        const val = taskPrioEl.value;
+        taskPrioEl.innerHTML = renderPriorityOptionsHtml(val || 'Alta');
+      }
+      const editStatusEl = document.getElementById('edit-task-status');
+      if (editStatusEl) {
+        const val = editStatusEl.value;
+        editStatusEl.innerHTML = renderStatusOptionsHtml(val);
+      }
+      const editPrioEl = document.getElementById('edit-task-prio');
+      if (editPrioEl) {
+        const val = editPrioEl.value;
+        editPrioEl.innerHTML = renderPriorityOptionsHtml(val);
+      }
+    }
+
+    function renderLegendContent() {
+      const stContainer = document.getElementById('legend-status-list');
+      if (stContainer) {
+        stContainer.innerHTML = STATUS_CONFIG.map(s => `
+          <div style="background: #0f172a; padding: 8px 12px; border-radius: 8px; border-left: 5px solid ${s.borda}; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; color: ${s.cor}; font-size: 0.85rem;">${s.nome}</span>
+            <span style="font-size: 0.75rem; color: #cbd5e1;">Borda lateral</span>
+          </div>
+        `).join('');
+      }
+      const prContainer = document.getElementById('legend-prio-list');
+      if (prContainer) {
+        prContainer.innerHTML = PRIORITY_CONFIG.map(p => `
+          <div style="flex: 1; min-width: 100px; background: #0f172a; padding: 8px 10px; border-radius: 8px; border: 1px solid ${p.borda}; text-align: center;">
+            <span class="prio-badge" style="color: ${p.cor}; background: ${p.bg}; border: 1px solid ${p.borda}; margin-left: 0;">${p.nome}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Funções da Legenda Visual de Cores
+    function openLegendModal() {
+      renderLegendContent();
+      const modal = document.getElementById('legendModal');
+      if (modal) modal.style.display = 'flex';
+    }
+    function closeLegendModal() {
+      const modal = document.getElementById('legendModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    // ==================== PWA & OFFLINE PERSISTENCE ====================
+    const CACHE_TASKS_KEY = 'arpego_cached_tasks';
+    const CACHE_PROJS_KEY = 'arpego_cached_projs';
+    const OFFLINE_QUEUE_KEY = 'arpego_offline_queue';
+
+    function getUserCacheSuffix() {
+      const u = getAuthUser();
+      return u && u.id ? `_u${u.id}` : '_u1';
+    }
+
+    function getCachedTasks() {
+      try {
+        const raw = localStorage.getItem(CACHE_TASKS_KEY + getUserCacheSuffix());
+        if (raw) return JSON.parse(raw);
+        const legacy = localStorage.getItem(CACHE_TASKS_KEY);
+        if (legacy) {
+          localStorage.setItem(CACHE_TASKS_KEY + getUserCacheSuffix(), legacy);
+          return JSON.parse(legacy);
+        }
+        return [];
+      } catch(e) { return []; }
+    }
+
+    function setCachedTasks(tasks) {
+      try {
+        localStorage.setItem(CACHE_TASKS_KEY + getUserCacheSuffix(), JSON.stringify(tasks));
+      } catch(e) {}
+    }
+
+    function getCachedProjs() {
+      try {
+        const raw = localStorage.getItem(CACHE_PROJS_KEY + getUserCacheSuffix());
+        if (raw) return JSON.parse(raw);
+        const legacy = localStorage.getItem(CACHE_PROJS_KEY);
+        if (legacy) {
+          localStorage.setItem(CACHE_PROJS_KEY + getUserCacheSuffix(), legacy);
+          return JSON.parse(legacy);
+        }
+        return [];
+      } catch(e) { return []; }
+    }
+
+    function setCachedProjs(projs) {
+      try {
+        localStorage.setItem(CACHE_PROJS_KEY + getUserCacheSuffix(), JSON.stringify(projs));
+      } catch(e) {}
+    }
+
+    function getOfflineQueue() {
+      try {
+        let q = [];
+        const raw = localStorage.getItem(OFFLINE_QUEUE_KEY + getUserCacheSuffix());
+        if (raw) q = JSON.parse(raw);
+        const legacy = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        if (legacy) {
+          try {
+            const legQ = JSON.parse(legacy);
+            if (Array.isArray(legQ) && legQ.length > 0) {
+              q = q.concat(legQ);
+              localStorage.setItem(OFFLINE_QUEUE_KEY + getUserCacheSuffix(), JSON.stringify(q));
+              localStorage.removeItem(OFFLINE_QUEUE_KEY);
+            }
+          } catch(e) {}
+        }
+        return q;
+      } catch(e) { return []; }
+    }
+
+    function addOfflineAction(action) {
+      try {
+        const q = getOfflineQueue();
+        q.push(action);
+        localStorage.setItem(OFFLINE_QUEUE_KEY + getUserCacheSuffix(), JSON.stringify(q));
+        updateNetworkStatus();
+      } catch(e) {}
+    }
+
+    function clearOfflineQueue() {
+      localStorage.removeItem(OFFLINE_QUEUE_KEY + getUserCacheSuffix());
+      localStorage.removeItem(OFFLINE_QUEUE_KEY);
+      updateNetworkStatus();
+    }
+
+    // Status de Conexão e Sincronização
+    let isSyncing = false;
+    function updateNetworkStatus() {
+      const badge = document.getElementById('net-badge');
+      if (!badge) return;
+      const q = getOfflineQueue();
+      if (navigator.onLine) {
+        if (q.length > 0) {
+          badge.className = 'net-badge offline';
+          badge.innerText = `⏳ Sincronizando (${q.length})...`;
+          flushOfflineQueue();
+        } else {
+          badge.className = 'net-badge online';
+          badge.innerText = '🟢 Online';
+        }
+      } else {
+        badge.className = 'net-badge offline';
+        badge.innerText = q.length > 0 ? `🟠 Offline (${q.length} pend.)` : '🟠 Offline (Local)';
+      }
+    }
+    window.addEventListener('online', () => { updateNetworkStatus(); flushOfflineQueue(); });
+    window.addEventListener('offline', updateNetworkStatus);
+
+    async function flushOfflineQueue() {
+      const q = getOfflineQueue();
+      if (q.length === 0 || isSyncing || !navigator.onLine) return;
+      isSyncing = true;
+      try {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id: 'pwa-mobile', changes: q })
+        });
+        const data = await res.json();
+        if (data.success) {
+          clearOfflineQueue();
+          if (data.tarefas) {
+            allTasks = data.tarefas;
+            setCachedTasks(allTasks);
+            renderTasks();
+          }
+          if (data.projetos) {
+            setCachedProjs(data.projetos);
+            populateProjetosUI(data.projetos);
+          }
+          if (data.status && data.prioridades) {
+            applyDominios({ status: data.status, prioridades: data.prioridades });
+            setCachedDominios({ status: data.status, prioridades: data.prioridades });
+          }
+          showToast('✅ Sincronizado com a nuvem!');
+        }
+      } catch (e) {
+        console.log('Sincronização offline postergada:', e);
+      } finally {
+        isSyncing = false;
+        updateNetworkStatus();
+      }
+    }
+
+    // Registro do Service Worker com forçamento de versão v5
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js?v=5')
+          .then(reg => {
+            reg.update();
+            console.log('ServiceWorker ativo v5:', reg.scope);
+          })
+          .catch(err => console.log('ServiceWorker falhou:', err));
+      });
+    }
+
+    // Captura do evento de Instalação (PWA)
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('btn-install-pwa');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    async function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          const btn = document.getElementById('btn-install-pwa');
+          if (btn) btn.style.display = 'none';
+        }
+        deferredPrompt = null;
+      } else {
+        alert('Para instalar o app no celular:\n\n📱 Android (Chrome): Toque nos 3 pontos ⋮ e escolha "Instalar aplicativo" ou "Adicionar à tela inicial".\n\n🍎 iPhone (Safari): Toque no ícone de Compartilhar ⎋ e escolha "Adicionar à Tela de Início".');
+      }
+    }
+
+    // Alternar entre Tarefas e Cofre
+    function switchMainTab(tab) {
+      document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+      if (tab === 'tasks') {
+        document.getElementById('tab-btn-tasks').classList.add('active');
+        document.getElementById('section-tasks').style.display = 'block';
+        document.getElementById('section-vault').style.display = 'none';
+      } else {
+        document.getElementById('tab-btn-vault').classList.add('active');
+        document.getElementById('section-tasks').style.display = 'none';
+        document.getElementById('section-vault').style.display = 'block';
+      }
+    }
+
+    // ==================== FILTROS COMPACTOS CUMULATIVOS ====================
+    let activeFilters = {
+      status: 'all',
+      projeto: 'all',
+      prioridade: 'all'
+    };
+
+    function updateFilterTipoLabels() {
+      const tipoEl = document.getElementById('filter-tipo');
+      if (!tipoEl) return;
+      const opts = tipoEl.options;
+      for (let i = 0; i < opts.length; i++) {
+        const val = opts[i].value;
+        if (val === 'status') {
+          opts[i].text = activeFilters.status !== 'all' ? `⚡ Status (${activeFilters.status})` : '⚡ Status';
+        } else if (val === 'projeto') {
+          opts[i].text = activeFilters.projeto !== 'all' ? `📁 Projeto (${activeFilters.projeto})` : '📁 Projeto / Cliente';
+        } else if (val === 'prioridade') {
+          opts[i].text = activeFilters.prioridade !== 'all' ? `🎯 Prioridade (${activeFilters.prioridade})` : '🎯 Prioridade';
+        }
+      }
+    }
+
+    function onFilterTipoChange() {
+      const tipoEl = document.getElementById('filter-tipo');
+      const chaveEl = document.getElementById('filter-chave');
+      if (!tipoEl || !chaveEl) return;
+
+      const tipo = tipoEl.value;
+      chaveEl.innerHTML = '';
+
+      if (tipo === 'status') {
+        chaveEl.innerHTML = '<option value="all">⚡ Todos os Status</option>' + 
+          STATUS_CONFIG.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+        chaveEl.value = activeFilters.status;
+      } else if (tipo === 'projeto') {
+        const projSet = new Set();
+        const cachedProjs = getCachedProjs();
+        if (Array.isArray(cachedProjs)) {
+          cachedProjs.forEach(p => { if (p.nome) projSet.add(p.nome); });
+        }
+        if (Array.isArray(allTasks)) {
+          allTasks.forEach(t => { if (t.projeto) projSet.add(t.projeto); });
+        }
+        let opts = '<option value="all">📁 Todos os Projetos</option>';
+        Array.from(projSet).sort().forEach(nome => {
+          opts += `<option value="${nome}">${nome}</option>`;
+        });
+        chaveEl.innerHTML = opts;
+        chaveEl.value = activeFilters.projeto;
+      } else if (tipo === 'prioridade') {
+        chaveEl.innerHTML = '<option value="all">🎯 Todas as Prioridades</option>' + 
+          PRIORITY_CONFIG.map(p => `<option value="${p.nome}">${p.nome}</option>`).join('');
+        chaveEl.value = activeFilters.prioridade;
+      } else {
+        chaveEl.innerHTML = '<option value="all">-- Todos os registros --</option>';
+        chaveEl.value = 'all';
+      }
+    }
+
+    function onFilterChaveChange() {
+      const tipoEl = document.getElementById('filter-tipo');
+      const chaveEl = document.getElementById('filter-chave');
+      if (!tipoEl || !chaveEl) return;
+
+      const tipo = tipoEl.value;
+      if (tipo !== 'all') {
+        activeFilters[tipo] = chaveEl.value;
+      }
+      applyFilters();
+    }
+
+    function removeFilter(tipo) {
+      if (activeFilters[tipo] !== undefined) {
+        activeFilters[tipo] = 'all';
+        const tipoEl = document.getElementById('filter-tipo');
+        if (tipoEl && tipoEl.value === tipo) {
+          const chaveEl = document.getElementById('filter-chave');
+          if (chaveEl) chaveEl.value = 'all';
+        }
+        applyFilters();
+      }
+    }
+
+    function applyFilters() {
+      let visible = 0;
+      document.querySelectorAll('.task-card').forEach(c => {
+        const cStatus = (c.getAttribute('data-status') || '').trim();
+        const cProj = (c.getAttribute('data-projeto') || '').trim();
+        const cPrio = (c.getAttribute('data-prioridade') || '').trim();
+
+        const matchStatus = (activeFilters.status === 'all' || cStatus.toLowerCase() === activeFilters.status.toLowerCase());
+        const matchProj = (activeFilters.projeto === 'all' || cProj.toLowerCase() === activeFilters.projeto.toLowerCase());
+        const matchPrio = (activeFilters.prioridade === 'all' || cPrio.toLowerCase() === activeFilters.prioridade.toLowerCase());
+
+        if (matchStatus && matchProj && matchPrio) {
+          c.style.display = 'block';
+          visible++;
+        } else {
+          c.style.display = 'none';
+        }
+      });
+
+      const emptyMsg = document.getElementById('task-empty-filter');
+      if (emptyMsg) {
+        emptyMsg.style.display = (visible === 0 && allTasks.length > 0) ? 'block' : 'none';
+      }
+
+      renderActiveFilterTags();
+      updateFilterTipoLabels();
+    }
+
+    function renderActiveFilterTags() {
+      const tagsContainer = document.getElementById('active-filter-tags');
+      const btnLimpar = document.getElementById('btn-clear-filters');
+      if (!tagsContainer) return;
+
+      let count = 0;
+      let html = '';
+
+      if (activeFilters.status !== 'all') {
+        count++;
+        html += `<span style="background: #1e293b; border: 1px solid var(--primary); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;">⚡ ${activeFilters.status} <b onclick="removeFilter('status')" style="cursor: pointer; color: #f87171; margin-left: 2px;" title="Remover filtro">✕</b></span>`;
+      }
+      if (activeFilters.projeto !== 'all') {
+        count++;
+        html += `<span style="background: #1e293b; border: 1px solid var(--primary); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;">📁 ${activeFilters.projeto} <b onclick="removeFilter('projeto')" style="cursor: pointer; color: #f87171; margin-left: 2px;" title="Remover filtro">✕</b></span>`;
+      }
+      if (activeFilters.prioridade !== 'all') {
+        count++;
+        html += `<span style="background: #1e293b; border: 1px solid var(--primary); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;">🎯 ${activeFilters.prioridade} <b onclick="removeFilter('prioridade')" style="cursor: pointer; color: #f87171; margin-left: 2px;" title="Remover filtro">✕</b></span>`;
+      }
+
+      tagsContainer.innerHTML = html;
+      tagsContainer.style.display = count > 0 ? 'flex' : 'none';
+
+      if (btnLimpar) {
+        btnLimpar.innerText = count > 0 ? `✕ Limpar (${count})` : '✕ Limpar';
+      }
+    }
+
+    function clearFilters() {
+      activeFilters = {
+        status: 'all',
+        projeto: 'all',
+        prioridade: 'all'
+      };
+      const tipoEl = document.getElementById('filter-tipo');
+      if (tipoEl) tipoEl.value = 'all';
+      onFilterTipoChange();
+      applyFilters();
+    }
+
+    function openNewTaskModal() {
+      populateStaticSelects();
+      document.getElementById('newTaskModal').style.display = 'flex';
+      document.getElementById('task-titulo').focus();
+    }
+
+    function closeNewTaskModal() {
+      document.getElementById('newTaskModal').style.display = 'none';
+    }
+
+    function onTaskProjChange() {
+      const projVal = (document.getElementById('task-proj').value || '').toLowerCase();
+      if (projVal.includes('pessoal') || projVal.includes('hábito') || projVal.includes('habito')) {
+        document.getElementById('task-tipo').value = "Pessoal";
+      } else {
+        document.getElementById('task-tipo').value = "Profissional";
+      }
+    }
+
+    function onEditTaskProjChange() {
+      const projVal = (document.getElementById('edit-task-proj').value || '').toLowerCase();
+      if (projVal.includes('pessoal') || projVal.includes('hábito') || projVal.includes('habito')) {
+        document.getElementById('edit-task-tipo').value = "Pessoal";
+      } else {
+        document.getElementById('edit-task-tipo').value = "Profissional";
+      }
+    }
+
+    function populateProjetosUI(projs) {
+      const datalist = document.getElementById('projetos-list');
+      if (datalist && Array.isArray(projs)) {
+        datalist.innerHTML = '';
+        projs.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.nome;
+          datalist.appendChild(opt);
+        });
+      }
+
+      // Se o filtro ativo no momento for por Projeto, atualiza as opções do 2º combo (chave)
+      const tipoEl = document.getElementById('filter-tipo');
+      if (tipoEl && tipoEl.value === 'projeto') {
+        const chaveEl = document.getElementById('filter-chave');
+        const projSet = new Set();
+        if (Array.isArray(projs)) {
+          projs.forEach(p => { if (p.nome) projSet.add(p.nome); });
+        }
+        if (Array.isArray(allTasks)) {
+          allTasks.forEach(t => { if (t.projeto) projSet.add(t.projeto); });
+        }
+        let opts = '<option value="all">📁 Todos os Projetos</option>';
+        Array.from(projSet).sort().forEach(nome => {
+          const sel = (nome === activeFilters.projeto) ? 'selected' : '';
+          opts += `<option value="${nome}" ${sel}>${nome}</option>`;
+        });
+        if (chaveEl) {
+          chaveEl.innerHTML = opts;
+          chaveEl.value = activeFilters.projeto;
+        }
+      }
+    }
+
+    async function loadProjetos() {
+      const cached = getCachedProjs();
+      if (cached && cached.length > 0) {
+        populateProjetosUI(cached);
+      }
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/projetos');
+          const projs = await res.json();
+          setCachedProjs(projs);
+          populateProjetosUI(projs);
+        } catch (e) {}
+      }
+    }
+
+    async function saveNewTask() {
+      const proj = document.getElementById('task-proj').value.trim();
+      const tipo = document.getElementById('task-tipo').value;
+      const titulo = document.getElementById('task-titulo').value.trim();
+      const prio = document.getElementById('task-prio').value;
+      const obs = document.getElementById('task-obs').value.trim();
+      const rec = parseInt(document.getElementById('task-rec').value || '0');
+
+      if (!titulo) {
+        alert("Por favor, digite o título da tarefa.");
+        return;
+      }
+
+      const payload = {
+        projeto: proj,
+        tipo: tipo,
+        titulo: titulo,
+        prioridade: prio,
+        observacoes: obs,
+        recorrencia_dias: rec
+      };
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/tarefa/nova', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeNewTaskModal();
+            document.getElementById('task-titulo').value = '';
+            document.getElementById('task-obs').value = '';
+            showToast('✅ Tarefa ' + data.codigo + ' cadastrada com sucesso!');
+            loadTasks();
+            loadProjetos();
+            return;
+          }
+        } catch (e) {
+          // Falha na rede, cai no fallback offline
+        }
+      }
+
+      // Fallback Offline imediato
+      closeNewTaskModal();
+      document.getElementById('task-titulo').value = '';
+      document.getElementById('task-obs').value = '';
+      const tempCod = tipo === 'Pessoal' ? `#P${allTasks.length + 1}` : `#${allTasks.length + 1}`;
+      allTasks.push({
+        codigo: tempCod,
+        titulo: titulo,
+        projeto: proj || 'Geral',
+        tipo: tipo,
+        prioridade: prio,
+        status: 'Não iniciada',
+        observacoes: obs,
+        recorrencia_dias: rec
+      });
+      setCachedTasks(allTasks);
+      renderTasks();
+      addOfflineAction({ action: 'nova', ...payload, timestamp: new Date().toISOString() });
+      showToast('💾 Salvo offline! Sincronizará ao reconectar.');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    let allTasks = [];
+
+    async function loadTasks() {
+      // 1. Renderiza imediatamente do cache local para resposta ultra-rápida (0ms)
+      const cached = getCachedTasks();
+      if (cached && cached.length > 0) {
+        allTasks = cached;
+        renderTasks();
+      }
+
+      const loadingEl = document.getElementById('task-loading');
+      if (loadingEl && allTasks.length === 0) loadingEl.style.display = 'block';
+
+      // 2. Se online, sincroniza do servidor
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/tarefas');
+          allTasks = await res.json();
+          setCachedTasks(allTasks);
+          renderTasks();
+          loadProjetos();
+          if (loadingEl) loadingEl.style.display = 'none';
+          flushOfflineQueue();
+        } catch (e) {
+          if (loadingEl) loadingEl.style.display = 'none';
+          updateNetworkStatus();
+        }
+      } else {
+        if (loadingEl) loadingEl.style.display = 'none';
+        updateNetworkStatus();
+      }
+    }
+
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+
+      let pendentes = 0;
+      let emTestes = 0;
+      let concluidas = 0;
+
+      allTasks.forEach(t => {
+        const stConf = getStatusConfig(t.status);
+        if (stConf.nome === 'Concluída') {
+          concluidas++;
+        } else if (stConf.nome === 'Em testes' || stConf.nome.toLowerCase().includes('teste')) {
+          emTestes++;
+        } else {
+          pendentes++;
+        }
+      });
+
+      document.getElementById('metric-pendentes').innerText = pendentes;
+      document.getElementById('metric-testes').innerText = emTestes;
+      document.getElementById('metric-concluidas').innerText = concluidas;
+
+      if (allTasks.length === 0) {
+        taskList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 30px;">Nenhuma tarefa encontrada.</div>';
+        return;
+      }
+
+      allTasks.forEach(t => {
+        const stConf = getStatusConfig(t.status);
+        const prioConf = getPriorityConfig(t.prioridade);
+        t.status = stConf.nome;
+        t.prioridade = prioConf.nome;
+
+        const projeto = (t.projeto || 'Geral').trim();
+        const isDone = stConf.nome === 'Concluída';
+
+        const cleanCode = (t.codigo || '').replace('#', '');
+        const card = document.createElement('article');
+        card.className = isDone ? 'task-card completed' : 'task-card';
+        card.style.borderLeft = `4px solid ${stConf.borda}`;
+        card.setAttribute('data-status', stConf.nome);
+        card.setAttribute('data-projeto', projeto);
+        card.setAttribute('data-prioridade', prioConf.nome);
+        card.id = 'card-' + cleanCode;
+
+        // Dropdown de status sincronizado diretamente via STATUS_CONFIG
+        const statusSelectHtml = `
+          <select class="status-select" style="color: ${stConf.cor}; border-color: ${stConf.borda};" onchange="updateStatus('${t.codigo}', this.value)">
+            ${renderStatusOptionsHtml(stConf.nome)}
+          </select>
+        `;
+
+        // Badge de Prioridade sincronizado diretamente via PRIORITY_CONFIG
+        const prioBadge = `<span class="prio-badge" style="color: ${prioConf.cor}; background: ${prioConf.bg}; border: 1px solid ${prioConf.borda}; margin-left: 6px;">${prioConf.nome}</span>`;
+
+        // Indicador de recursividade
+        let recBadge = '';
+        if (t.recorrencia_dias && t.recorrencia_dias > 0) {
+          let recInfo = `🔄 A cada ${t.recorrencia_dias}d (às 04h)`;
+          if (isDone && t.data_recorrencia) {
+            try {
+              const dtPart = t.data_recorrencia.split('T')[0];
+              const parts = dtPart.split('-');
+              if (parts.length === 3) {
+                recInfo = `🔄 Volta em ${parts[2]}/${parts[1]} às 04:00`;
+              }
+            } catch(e) {}
+          }
+          recBadge = `<span style="font-size: 0.7rem; color: var(--purple); background: #6b21a820; border: 1px solid #a855f7; padding: 2px 6px; border-radius: 6px; margin-left: 6px;" title="Reinicia automaticamente às 04:00">${recInfo}</span>`;
+        }
+
+        // Ações compactas: Editar e Excluir
+        const actionsHtml = `
+          <div class="task-actions" style="justify-content: flex-end; align-items: center;">
+            <button class="btn-icon" onclick="openEditTaskModal('${t.codigo}')" title="Editar Tarefa">✏️ Editar</button>
+            <button class="btn-icon" style="color: var(--danger); border-color: #7f1d1d;" onclick="deleteTask('${t.codigo}')" title="Excluir Tarefa">🗑️ Excluir</button>
+          </div>
+        `;
+
+        card.innerHTML = `
+          <div class="task-header">
+            <div>
+              <span class="task-id">${t.codigo}</span> 
+              <span class="task-client">${projeto}</span>
+              ${prioBadge}
+              ${recBadge}
+            </div>
+            ${statusSelectHtml}
+          </div>
+          <div class="task-title" style="${isDone ? 'text-decoration: line-through; opacity: 0.75;' : ''}">${t.titulo}</div>
+          ${t.observacoes ? `<div class="support-tip"><span class="tip-icon">💡</span> ${t.observacoes}</div>` : ''}
+          ${actionsHtml}
+        `;
+
+        taskList.appendChild(card);
+      });
+
+      // Mensagem para filtro sem resultados
+      const emptyCard = document.createElement('div');
+      emptyCard.id = 'task-empty-filter';
+      emptyCard.style.cssText = 'display: none; text-align: center; color: var(--text-muted); padding: 30px; font-size: 0.9rem;';
+      emptyCard.innerHTML = '🔍 Nenhuma tarefa encontrada com os filtros selecionados.<br><button onclick="clearFilters()" class="btn-clear-filters" style="margin-top: 10px;">Limpar Filtros</button>';
+      taskList.appendChild(emptyCard);
+
+      applyFilters();
+    }
+
+    async function updateStatus(codigo, novoStatus) {
+      // 1. Atualiza estado local imediatamente para resposta instantânea
+      const task = allTasks.find(t => t.codigo === codigo);
+      if (task) {
+        task.status = novoStatus;
+        setCachedTasks(allTasks);
+        renderTasks();
+      }
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/tarefa/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo: codigo, status: novoStatus })
+          });
+          const data = await res.json();
+          showToast('✅ ' + codigo + ' atualizada para: ' + novoStatus);
+          loadTasks();
+          return;
+        } catch (e) {
+          // Falha na rede, prossegue para fila offline
+        }
+      }
+
+      addOfflineAction({ action: 'status', codigo: codigo, status: novoStatus, timestamp: new Date().toISOString() });
+      showToast('💾 Salvo offline! Sincronizará ao reconectar.');
+    }
+
+    // Modal de Edição de Tarefas
+    function openEditTaskModal(codigo) {
+      const task = allTasks.find(t => t.codigo === codigo);
+      if (!task) return;
+
+      document.getElementById('edit-task-cod').innerText = task.codigo;
+      document.getElementById('edit-task-titulo').value = task.titulo || '';
+      document.getElementById('edit-task-proj').value = task.projeto || '';
+      document.getElementById('edit-task-tipo').value = task.tipo || 'Profissional';
+      document.getElementById('edit-task-prio').innerHTML = renderPriorityOptionsHtml(task.prioridade || 'Alta');
+      document.getElementById('edit-task-status').innerHTML = renderStatusOptionsHtml(task.status || 'Não iniciada');
+      document.getElementById('edit-task-rec').value = task.recorrencia_dias || 0;
+      document.getElementById('edit-task-obs').value = task.observacoes || '';
+
+      document.getElementById('editTaskModal').style.display = 'flex';
+    }
+
+    function closeEditTaskModal() {
+      document.getElementById('editTaskModal').style.display = 'none';
+    }
+
+    async function saveEditTask() {
+      const codigo = document.getElementById('edit-task-cod').innerText;
+      const titulo = document.getElementById('edit-task-titulo').value.trim();
+      const proj = document.getElementById('edit-task-proj').value.trim();
+      const tipo = document.getElementById('edit-task-tipo').value;
+      const prio = document.getElementById('edit-task-prio').value;
+      const status = document.getElementById('edit-task-status').value;
+      const rec = parseInt(document.getElementById('edit-task-rec').value || '0');
+      const obs = document.getElementById('edit-task-obs').value.trim();
+
+      if (!titulo) {
+        alert("O título não pode ficar vazio.");
+        return;
+      }
+
+      const payload = {
+        codigo: codigo,
+        titulo: titulo,
+        projeto: proj,
+        tipo: tipo,
+        prioridade: prio,
+        status: status,
+        recorrencia_dias: rec,
+        observacoes: obs
+      };
+
+      // Atualiza localmente
+      const task = allTasks.find(t => t.codigo === codigo);
+      if (task) {
+        Object.assign(task, payload);
+        setCachedTasks(allTasks);
+        renderTasks();
+      }
+      closeEditTaskModal();
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/tarefa/editar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('✏️ Tarefa ' + codigo + ' atualizada!');
+            loadTasks();
+            loadProjetos();
+            return;
+          }
+        } catch (e) {}
+      }
+
+      addOfflineAction({ action: 'editar', ...payload, timestamp: new Date().toISOString() });
+      showToast('💾 Alterações salvas offline! Sincronizará ao reconectar.');
+    }
+
+    async function deleteTask(codigo) {
+      if (!confirm('Deseja realmente excluir a tarefa ' + codigo + '?')) return;
+
+      allTasks = allTasks.filter(t => t.codigo !== codigo);
+      setCachedTasks(allTasks);
+      renderTasks();
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/tarefa/excluir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo: codigo })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('🗑️ Tarefa ' + codigo + ' excluída!');
+            loadTasks();
+            return;
+          }
+        } catch (e) {}
+      }
+
+      showToast('🗑️ Tarefa excluída localmente!');
+    }
+
+    // Inicialização automática com validação de sessão
+    window.addEventListener('DOMContentLoaded', () => {
+      // Auto-reconhecimento para o dispositivo do Renato que já continha tarefas salvas
+      if (!getAuthUser()) {
+        const legacyTasks = localStorage.getItem('arpego_cached_tasks');
+        const legacyQueue = localStorage.getItem('arpego_offline_queue');
+        if (legacyTasks || legacyQueue) {
+          setAuthUser({ id: 1, login: 'Renato', nome: 'Renato' });
+        }
+      }
+
+      const user = getAuthUser();
+      if (!user) {
+        openAuthModal('login');
+      } else {
+        updateUserUI(user);
+      }
+      loadDominios();
+      loadTasks();
+      loadProjetos();
+    });
+
+    // ==================== CRIPTOGRAFIA ZERO-KNOWLEDGE (AES-GCM) ====================
+    async function deriveKey(pin, saltBytes) {
+      const enc = new TextEncoder();
+      const baseKey = await window.crypto.subtle.importKey(
+        "raw", enc.encode(pin), { name: "PBKDF2" }, false, ["deriveKey"]
+      );
+      return await window.crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: saltBytes,
+          iterations: 100000,
+          hash: "SHA-256"
+        },
+        baseKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptText(text, pin) {
+      const enc = new TextEncoder();
+      const salt = window.crypto.getRandomValues(new Uint8Array(16));
+      const iv = window.crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(pin, salt);
+
+      const cipherBuffer = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        enc.encode(text)
+      );
+
+      return {
+        ciphertext: btoa(String.fromCharCode(...new Uint8Array(cipherBuffer))),
+        iv: btoa(String.fromCharCode(...iv)),
+        salt: btoa(String.fromCharCode(...salt))
+      };
+    }
+
+    async function decryptText(ciphertextB64, ivB64, saltB64, pin) {
+      try {
+        const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+        const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+        const cipher = Uint8Array.from(atob(ciphertextB64), c => c.charCodeAt(0));
+        const key = await deriveKey(pin, salt);
+
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: iv },
+          key,
+          cipher
+        );
+        return new TextDecoder().decode(decryptedBuffer);
+      } catch (e) {
+        return "❌ PIN Inválido";
+      }
+    }
+
+    // ==================== OPERAÇÕES DO COFRE ====================
+    let currentPin = "";
+
+    async function unlockVault() {
+      const pin = document.getElementById('vault-pin-input').value.trim();
+      if (!pin) {
+        alert("Por favor, digite o PIN.");
+        return;
+      }
+      currentPin = pin;
+      document.getElementById('vault-locked').style.display = 'none';
+      document.getElementById('vault-unlocked').style.display = 'block';
+      loadCredentials();
+    }
+
+    function lockVault() {
+      currentPin = "";
+      document.getElementById('vault-pin-input').value = "";
+      document.getElementById('vault-locked').style.display = 'block';
+      document.getElementById('vault-unlocked').style.display = 'none';
+      showToast("🔒 Cofre bloqueado com segurança.");
+    }
+
+    async function loadCredentials() {
+      try {
+        const res = await fetch('/api/credenciais');
+        cachedCreds = await res.json();
+        renderCredentials();
+      } catch (e) {
+        alert("Erro ao carregar dados do cofre.");
+      }
+    }
+
+    async function renderCredentials() {
+      const list = document.getElementById('credList');
+      if (cachedCreds.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 30px 10px;">Nenhum acesso cadastrado ainda. Clique em <b>➕ Novo Acesso</b> acima para começar!</div>';
+        return;
+      }
+
+      let html = '';
+      for (const cred of cachedCreds) {
+        html += `
+          <div class="cred-card">
+            <div class="cred-header">
+              <div>
+                <span class="cred-title">${cred.titulo}</span>
+                <span class="cred-badge">${cred.categoria}</span>
+              </div>
+              <button class="btn-copy" style="color: var(--danger); border-color: #7f1d1d;" onclick="deleteCredential(${cred.id})">🗑️</button>
+            </div>
+            
+            <div class="cred-field">
+              <div>
+                <div class="cred-label">IDENTIFICADOR / LOGIN</div>
+                <div class="cred-val">${cred.usuario || '(vazio)'}</div>
+              </div>
+              <button class="btn-copy" onclick="copyToClipboard('${cred.usuario}')">📋 Copiar</button>
+            </div>
+
+            <div class="cred-field">
+              <div>
+                <div class="cred-label">CHAVE / SENHA</div>
+                <div class="cred-val" id="pass-val-${cred.id}">••••••••••••</div>
+              </div>
+              <div style="display:flex; gap: 4px;">
+                <button class="btn-copy" onclick="revealPassword(${cred.id}, '${cred.senha_cifrada}', '${cred.iv}', '${cred.salt}')">👁️ Ver</button>
+                <button class="btn-copy" onclick="copyDecryptedPassword('${cred.senha_cifrada}', '${cred.iv}', '${cred.salt}')">📋 Copiar</button>
+              </div>
+            </div>
+
+            ${cred.observacoes ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">📝 ${cred.observacoes}</div>` : ''}
+          </div>
+        `;
+      }
+      list.innerHTML = html;
+    }
+
+    async function revealPassword(id, cipher, iv, salt) {
+      const el = document.getElementById('pass-val-' + id);
+      if (el.innerText.startsWith('•••')) {
+        const pass = await decryptText(cipher, iv, salt, currentPin);
+        el.innerText = pass;
+      } else {
+        el.innerText = '••••••••••••';
+      }
+    }
+
+    async function copyDecryptedPassword(cipher, iv, salt) {
+      const pass = await decryptText(cipher, iv, salt, currentPin);
+      if (pass.startsWith('❌')) {
+        alert(pass);
+        return;
+      }
+      copyToClipboard(pass);
+      showToast("🔑 Senha copiada!");
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("📋 Copiado!");
+      });
+    }
+
+    function openNewCredModal() {
+      document.getElementById('newCredModal').style.display = 'flex';
+    }
+
+    function closeNewCredModal() {
+      document.getElementById('newCredModal').style.display = 'none';
+    }
+
+    async function saveNewCredential() {
+      const cat = document.getElementById('cred-cat').value;
+      const title = document.getElementById('cred-title').value.trim();
+      const user = document.getElementById('cred-user').value.trim();
+      const pass = document.getElementById('cred-pass').value;
+      const obs = document.getElementById('cred-obs').value.trim();
+
+      if (!title || !pass) {
+        alert("Preencha ao menos o Título e a Senha.");
+        return;
+      }
+
+      // Criptografa no navegador antes de enviar
+      const encrypted = await encryptText(pass, currentPin);
+
+      const payload = {
+        categoria: cat,
+        titulo: title,
+        usuario: user,
+        senha_cifrada: encrypted.ciphertext,
+        iv: encrypted.iv,
+        salt: encrypted.salt,
+        observacoes: obs
+      };
+
+      try {
+        const res = await fetch('/api/credenciais', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeNewCredModal();
+          // Limpa campos
+          document.getElementById('cred-title').value = '';
+          document.getElementById('cred-user').value = '';
+          document.getElementById('cred-pass').value = '';
+          document.getElementById('cred-obs').value = '';
+          showToast("🔐 Acesso salvo com criptografia AES-256!");
+          loadCredentials();
+        }
+      } catch (e) {
+        alert("Erro ao salvar.");
+      }
+    }
+
+    async function deleteCredential(id) {
+      if (!confirm("Tem certeza que deseja excluir este acesso?")) return;
+      try {
+        await fetch('/api/credenciais/excluir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id })
+        });
+        showToast("🗑️ Acesso removido.");
+        loadCredentials();
+      } catch (e) {
+        alert("Erro ao excluir.");
+      }
+    }
+  </script>
+</body>
+</html>

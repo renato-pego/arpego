@@ -1,0 +1,16 @@
+# Arquivos de banco de dados locais (gerados em runtime)
+*.db
+*.db-journal
+*.db-wal
+assistpe.db
+assistpe_desktop.db
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE e logs
+.vscode/
+.idea/
+*.log
