@@ -17,7 +17,9 @@ git add .
 git commit -m "fix: sync upsert e auto-auth mobile"
 echo.
 echo [3/3] Enviando para o GitHub...
-git push
+git push -u origin main --force
 echo.
+echo ======================================================
+echo    Concluido com sucesso! O Render iniciou o deploy.
 echo ======================================================
 pause
