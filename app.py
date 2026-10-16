@@ -183,9 +183,13 @@ def init_db():
             cur.execute(f"ALTER TABLE {table} ADD COLUMN id_usuario INTEGER DEFAULT 1;")
         cur.execute(f"UPDATE {table} SET id_usuario = 1 WHERE id_usuario IS NULL;")
 
-    # Garante coluna ultima_atualizacao em tb_tarefas
+    # Garante colunas de recorrência e ultima_atualizacao em tb_tarefas
     cur.execute("PRAGMA table_info(tb_tarefas);")
     cols_t = [r[1] for r in cur.fetchall()]
+    if 'recorrencia_dias' not in cols_t:
+        cur.execute("ALTER TABLE tb_tarefas ADD COLUMN recorrencia_dias INTEGER DEFAULT 0;")
+    if 'data_recorrencia' not in cols_t:
+        cur.execute("ALTER TABLE tb_tarefas ADD COLUMN data_recorrencia TEXT;")
     if 'ultima_atualizacao' not in cols_t:
         cur.execute("ALTER TABLE tb_tarefas ADD COLUMN ultima_atualizacao TEXT;")
         now_init = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
