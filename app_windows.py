@@ -170,6 +170,13 @@ def init_sqlserver_tables(conn):
             CONSTRAINT FK_tb_tarefas_projetos FOREIGN KEY (id_projeto) REFERENCES tb_projetos(id)
         );
     END
+    ELSE
+    BEGIN
+        IF COL_LENGTH('tb_tarefas', 'ultima_atualizacao') IS NULL
+            ALTER TABLE tb_tarefas ADD ultima_atualizacao DATETIME DEFAULT GETDATE();
+        IF COL_LENGTH('tb_tarefas', 'sync_pendente') IS NULL
+            ALTER TABLE tb_tarefas ADD sync_pendente BIT DEFAULT 0;
+    END
     """)
 
     cur.execute("""
@@ -269,9 +276,14 @@ def init_sqlite_fallback():
         data_conclusao TEXT,
         recorrencia_dias INTEGER DEFAULT 0,
         data_recorrencia TEXT,
-        sync_pendente INTEGER DEFAULT 0
+        sync_pendente INTEGER DEFAULT 0,
+        ultima_atualizacao TEXT
     );
     """)
+    cur.execute("PRAGMA table_info(tb_tarefas);")
+    cols_fb = [r[1] for r in cur.fetchall()]
+    if 'ultima_atualizacao' not in cols_fb:
+        cur.execute("ALTER TABLE tb_tarefas ADD COLUMN ultima_atualizacao TEXT;")
     cur.execute("""
     CREATE TABLE IF NOT EXISTS tb_status (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -330,26 +342,30 @@ def sync_with_cloud(verbose=False):
 
         cur = conn.cursor()
 
-        # Coleta deltas locais com sync_pendente = 1
+        # Coleta todas as tarefas locais com carimbo de data/hora para reconciliação LWW
         if use_sql:
             cur.execute("""
-            SELECT t.codigo, t.status, t.titulo, p.nome, t.tipo, t.prioridade, t.observacoes, t.recorrencia_dias
+            SELECT t.codigo, t.status, t.titulo, p.nome, t.tipo, t.prioridade, t.observacoes, t.recorrencia_dias,
+                   t.data_conclusao, t.data_recorrencia,
+                   CONVERT(VARCHAR(19), t.ultima_atualizacao, 120) AS ultima_atualizacao,
+                   t.sync_pendente
             FROM tb_tarefas t
-            LEFT JOIN tb_projetos p ON t.id_projeto = p.id
-            WHERE t.sync_pendente = 1;
+            LEFT JOIN tb_projetos p ON t.id_projeto = p.id;
             """)
         else:
             cur.execute("""
-            SELECT t.codigo, t.status, t.titulo, p.nome, t.tipo, t.prioridade, t.observacoes, t.recorrencia_dias
+            SELECT t.codigo, t.status, t.titulo, p.nome, t.tipo, t.prioridade, t.observacoes, t.recorrencia_dias,
+                   t.data_conclusao, t.data_recorrencia,
+                   COALESCE(t.ultima_atualizacao, datetime('now')) AS ultima_atualizacao,
+                   t.sync_pendente
             FROM tb_tarefas t
-            LEFT JOIN tb_projetos p ON t.id_projeto = p.id
-            WHERE t.sync_pendente = 1;
+            LEFT JOIN tb_projetos p ON t.id_projeto = p.id;
             """)
 
+        all_local_tarefas = []
         local_changes = []
         for r in cur.fetchall():
-            local_changes.append({
-                "action": "editar",
+            item = {
                 "codigo": r[0],
                 "status": r[1],
                 "titulo": r[2],
@@ -357,8 +373,14 @@ def sync_with_cloud(verbose=False):
                 "tipo": r[4],
                 "prioridade": r[5],
                 "observacoes": r[6] or "",
-                "recorrencia_dias": r[7] or 0
-            })
+                "recorrencia_dias": r[7] or 0,
+                "data_conclusao": r[8],
+                "data_recorrencia": r[9],
+                "ultima_atualizacao": str(r[10]) if r[10] else ""
+            }
+            all_local_tarefas.append(item)
+            if r[11] == 1:
+                local_changes.append({"action": "editar", **item})
 
         # Coleta projetos locais para a Nuvem conhecer todos os projetos (ex: Carro)
         cur.execute("SELECT nome, tipo FROM tb_projetos;")
@@ -372,6 +394,7 @@ def sync_with_cloud(verbose=False):
 
         payload = {
             "client_id": "windows-desktop-baseforte",
+            "tarefas": all_local_tarefas,
             "changes": local_changes,
             "projetos": local_projs,
             "dominios": {
@@ -407,20 +430,16 @@ def sync_with_cloud(verbose=False):
             p_nome = p.get("nome", "").strip()
             p_tipo = p.get("tipo", "Profissional").strip()
             if not p_nome: continue
-            if use_sql:
-                cur.execute("SELECT id FROM tb_projetos WHERE LOWER(nome) = LOWER(?);", (p_nome,))
-                if not cur.fetchone():
-                    cur.execute("INSERT INTO tb_projetos (nome, sigla, tipo) VALUES (?, ?, ?);",
-                                (p_nome, p_nome[:6].upper(), p_tipo))
-            else:
-                cur.execute("SELECT id FROM tb_projetos WHERE LOWER(nome) = LOWER(?);", (p_nome,))
-                if not cur.fetchone():
-                    cur.execute("INSERT INTO tb_projetos (nome, sigla, tipo) VALUES (?, ?, ?);",
-                                (p_nome, p_nome[:6].upper(), p_tipo))
+            cur.execute("SELECT id FROM tb_projetos WHERE LOWER(nome) = LOWER(?);", (p_nome,))
+            if not cur.fetchone():
+                cur.execute("INSERT INTO tb_projetos (nome, sigla, tipo) VALUES (?, ?, ?);",
+                            (p_nome, p_nome[:6].upper(), p_tipo))
 
         # Mapa de projetos
         cur.execute("SELECT id, LOWER(nome) FROM tb_projetos;")
         proj_map = {row[1]: row[0] for row in cur.fetchall()}
+
+        now_str = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
 
         for t in tarefas_nuvem:
             cod = t.get("codigo", "").strip()
@@ -433,40 +452,43 @@ def sync_with_cloud(verbose=False):
             rec_d = int(t.get("recorrencia_dias", 0))
             d_conc = t.get("data_conclusao")
             d_rec = t.get("data_recorrencia")
+            cloud_ts = (t.get("ultima_atualizacao") or "").strip()
 
             proj_id = proj_map.get(proj_nome, 1)
 
-            cur.execute("SELECT id, titulo, sync_pendente FROM tb_tarefas WHERE codigo = ?;", (cod,))
+            if use_sql:
+                cur.execute("SELECT id, CONVERT(VARCHAR(19), ultima_atualizacao, 120), sync_pendente FROM tb_tarefas WHERE codigo = ?;", (cod,))
+            else:
+                cur.execute("SELECT id, ultima_atualizacao, sync_pendente FROM tb_tarefas WHERE codigo = ?;", (cod,))
+
             row = cur.fetchone()
             if row:
-                loc_id, loc_tit, loc_pend = row[0], row[1], row[2]
-                # Se local tinha alteração pendente com título diferente, preserva a local em novo código
-                if loc_pend == 1 and loc_tit and loc_tit.strip().lower() != tit.strip().lower():
-                    if tipo == 'Pessoal':
-                        cur.execute("SELECT codigo FROM tb_tarefas WHERE codigo LIKE '#P%' ORDER BY id DESC;")
-                        l = cur.fetchone()
-                        nxt_cod = f"#P{int(re.sub(r'\\D', '', l[0]) or 0) + 1:02d}" if l else "#P01"
-                    else:
-                        cur.execute("SELECT codigo FROM tb_tarefas WHERE codigo NOT LIKE '#P%' ORDER BY id DESC;")
-                        l = cur.fetchone()
-                        nxt_cod = f"#{int(re.sub(r'\\D', '', l[0]) or 0) + 1:03d}" if l else "#001"
-                    cur.execute("UPDATE tb_tarefas SET codigo = ?, sync_pendente = 1 WHERE id = ?;", (nxt_cod, loc_id))
-                    cur.execute("""
-                    INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, sync_pendente)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
-                    """, (cod, proj_id, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec))
-                else:
+                loc_id = row[0]
+                loc_ts = (str(row[1]) if row[1] else "").strip()
+                loc_pend = row[2]
+
+                # Se a Nuvem tem carimbo mais recente ou Desktop não tinha carimbo, atualiza local
+                if cloud_ts > loc_ts or not loc_ts:
                     cur.execute("""
                     UPDATE tb_tarefas
                     SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?,
-                        observacoes = ?, data_conclusao = ?, recorrencia_dias = ?, data_recorrencia = ?, sync_pendente = 0
+                        observacoes = ?, data_conclusao = ?, recorrencia_dias = ?, data_recorrencia = ?,
+                        ultima_atualizacao = ?, sync_pendente = 0
                     WHERE codigo = ?;
-                    """, (tit, proj_id, tipo, prio, st, obs, d_conc, rec_d, d_rec, cod))
+                    """, (tit, proj_id, tipo, prio, st, obs, d_conc, rec_d, d_rec, cloud_ts or now_str, cod))
+                elif loc_ts > cloud_ts:
+                    # Desktop é mais recente: mantém e deixa sync_pendente = 1
+                    pass
+                else:
+                    # Mesma data/hora: limpa pendência
+                    if loc_pend == 1:
+                        cur.execute("UPDATE tb_tarefas SET sync_pendente = 0 WHERE codigo = ?;", (cod,))
             else:
+                # Tarefa não existe no Desktop: insere diretamente
                 cur.execute("""
-                INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, sync_pendente)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
-                """, (cod, proj_id, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec))
+                INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, ultima_atualizacao, sync_pendente)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+                """, (cod, proj_id, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec, cloud_ts or now_str))
 
         for c in local_changes:
             c_cod = c.get("codigo")
@@ -675,25 +697,48 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
                 conn = sqlite3.connect(SQLITE_FALLBACK_FILE)
 
             cur = conn.cursor()
-            cur.execute("""
-            SELECT t.id, t.codigo, p.id AS projeto_id, p.nome AS projeto, t.titulo, t.tipo, t.prioridade, 
-                   t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia
-            FROM tb_tarefas t
-            LEFT JOIN tb_projetos p ON t.id_projeto = p.id
-            ORDER BY 
-                CASE t.status 
-                    WHEN 'Em andamento' THEN 1 
-                    WHEN 'Pendente' THEN 2
-                    WHEN 'Aguardando retorno' THEN 3
-                    WHEN 'Não iniciada' THEN 4
-                    WHEN 'Liberado p/ testes' THEN 5 
-                    WHEN 'Aguardando testes' THEN 6 
-                    WHEN 'Em testes' THEN 6
-                    WHEN 'Planejada' THEN 7 
-                    ELSE 8 
-                END,
-                t.codigo;
-            """)
+            if use_sql:
+                cur.execute("""
+                SELECT t.id, t.codigo, p.id AS projeto_id, p.nome AS projeto, t.titulo, t.tipo, t.prioridade, 
+                       t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia,
+                       CONVERT(VARCHAR(19), t.ultima_atualizacao, 120) AS ultima_atualizacao
+                FROM tb_tarefas t
+                LEFT JOIN tb_projetos p ON t.id_projeto = p.id
+                ORDER BY 
+                    CASE t.status 
+                        WHEN 'Em andamento' THEN 1 
+                        WHEN 'Pendente' THEN 2
+                        WHEN 'Aguardando retorno' THEN 3
+                        WHEN 'Não iniciada' THEN 4
+                        WHEN 'Liberado p/ testes' THEN 5 
+                        WHEN 'Aguardando testes' THEN 6 
+                        WHEN 'Em testes' THEN 6
+                        WHEN 'Planejada' THEN 7 
+                        ELSE 8 
+                    END,
+                    t.codigo;
+                """)
+            else:
+                cur.execute("""
+                SELECT t.id, t.codigo, p.id AS projeto_id, p.nome AS projeto, t.titulo, t.tipo, t.prioridade, 
+                       t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia,
+                       t.ultima_atualizacao
+                FROM tb_tarefas t
+                LEFT JOIN tb_projetos p ON t.id_projeto = p.id
+                ORDER BY 
+                    CASE t.status 
+                        WHEN 'Em andamento' THEN 1 
+                        WHEN 'Pendente' THEN 2
+                        WHEN 'Aguardando retorno' THEN 3
+                        WHEN 'Não iniciada' THEN 4
+                        WHEN 'Liberado p/ testes' THEN 5 
+                        WHEN 'Aguardando testes' THEN 6 
+                        WHEN 'Em testes' THEN 6
+                        WHEN 'Planejada' THEN 7 
+                        ELSE 8 
+                    END,
+                    t.codigo;
+                """)
             cols = [d[0] for d in cur.description]
             rows = [dict(zip(cols, r)) for r in cur.fetchall()]
             conn.close()
@@ -810,10 +855,11 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
                 num = int(re.sub(r'\D', '', last[0]) or 0) if last else 0
                 cod = f"#{num + 1:03d}"
 
+            now_dt = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
             cur.execute("""
-            INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, sync_pendente)
-            VALUES (?, ?, ?, ?, ?, 'Não iniciada', ?, ?, 1);
-            """, (cod, proj_id, titulo, tipo, prio, obs, rec))
+            INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, sync_pendente, ultima_atualizacao)
+            VALUES (?, ?, ?, ?, ?, 'Não iniciada', ?, ?, 1, ?);
+            """, (cod, proj_id, titulo, tipo, prio, obs, rec, now_dt))
             conn.commit()
             conn.close()
             self._send_json({"success": True, "codigo": cod})
@@ -822,11 +868,12 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
             cod = data.get('codigo', '').strip()
             novo_st = data.get('status', 'Não iniciada').strip()
             d_conc = get_now_br().strftime('%Y-%m-%dT%H:%M:%S') if novo_st == 'Concluída' else None
+            now_dt = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
             cur.execute("""
             UPDATE tb_tarefas 
-            SET status = ?, data_conclusao = ?, sync_pendente = 1 
+            SET status = ?, data_conclusao = ?, sync_pendente = 1, ultima_atualizacao = ? 
             WHERE codigo = ?;
-            """, (novo_st, d_conc, cod))
+            """, (novo_st, d_conc, now_dt, cod))
             conn.commit()
             conn.close()
             self._send_json({"success": True, "codigo": cod, "status": novo_st})
@@ -845,11 +892,12 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
             row = cur.fetchone()
             proj_id = row[0] if row else 1
 
+            now_dt = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
             cur.execute("""
             UPDATE tb_tarefas 
-            SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?, recorrencia_dias = ?, observacoes = ?, sync_pendente = 1
+            SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?, recorrencia_dias = ?, observacoes = ?, sync_pendente = 1, ultima_atualizacao = ?
             WHERE codigo = ?;
-            """, (tit, proj_id, tipo, prio, st, rec, obs, cod))
+            """, (tit, proj_id, tipo, prio, st, rec, obs, now_dt, cod))
             conn.commit()
             conn.close()
             self._send_json({"success": True, "codigo": cod})

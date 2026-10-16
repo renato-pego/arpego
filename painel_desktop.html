@@ -761,6 +761,18 @@
           recBadge = `<span style="font-size: 0.7rem; color: var(--purple); background: #6b21a820; border: 1px solid #a855f7; padding: 2px 6px; border-radius: 6px; margin-left: 6px;">🔄 A cada ${t.recorrencia_dias}d</span>`;
         }
 
+        let tsBadge = '';
+        if (t.ultima_atualizacao) {
+          try {
+            const parts = t.ultima_atualizacao.split(' ');
+            const dParts = parts[0].split('-');
+            const tParts = (parts[1] || '').split(':');
+            if (dParts.length === 3 && tParts.length >= 2) {
+              tsBadge = `<span style="font-size: 0.68rem; color: #64748b; margin-left: 6px;" title="Última atualização: ${t.ultima_atualizacao}">🕒 ${dParts[2]}/${dParts[1]} ${tParts[0]}:${tParts[1]}</span>`;
+            }
+          } catch(e) {}
+        }
+
         const actionsHtml = `
           <div class="task-actions">
             <button class="btn-icon" onclick="openEditTaskModal('${t.codigo}')" title="Editar Tarefa">✏️ Editar</button>
@@ -775,6 +787,7 @@
               <span class="task-client">${projeto}</span>
               ${prioBadge}
               ${recBadge}
+              ${tsBadge}
             </div>
             ${statusSelectHtml}
           </div>

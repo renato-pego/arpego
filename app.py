@@ -114,6 +114,7 @@ def init_db():
         data_conclusao TEXT,
         recorrencia_dias INTEGER DEFAULT 0,
         data_recorrencia TEXT,
+        ultima_atualizacao TEXT,
         UNIQUE(id_usuario, codigo),
         FOREIGN KEY (id_projeto) REFERENCES tb_projetos(id)
     );
@@ -182,6 +183,14 @@ def init_db():
             cur.execute(f"ALTER TABLE {table} ADD COLUMN id_usuario INTEGER DEFAULT 1;")
         cur.execute(f"UPDATE {table} SET id_usuario = 1 WHERE id_usuario IS NULL;")
 
+    # Garante coluna ultima_atualizacao em tb_tarefas
+    cur.execute("PRAGMA table_info(tb_tarefas);")
+    cols_t = [r[1] for r in cur.fetchall()]
+    if 'ultima_atualizacao' not in cols_t:
+        cur.execute("ALTER TABLE tb_tarefas ADD COLUMN ultima_atualizacao TEXT;")
+        now_init = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
+        cur.execute("UPDATE tb_tarefas SET ultima_atualizacao = ? WHERE ultima_atualizacao IS NULL;", (now_init,))
+
     # Garante índice único composto em tb_tarefas para permitir #001 para cada usuário
     cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='tb_tarefas';")
     tbl_row = cur.fetchone()
@@ -200,13 +209,14 @@ def init_db():
             data_conclusao TEXT,
             recorrencia_dias INTEGER DEFAULT 0,
             data_recorrencia TEXT,
+            ultima_atualizacao TEXT,
             UNIQUE(id_usuario, codigo),
             FOREIGN KEY (id_projeto) REFERENCES tb_projetos(id)
         );
         """)
         cur.execute("""
-        INSERT INTO tb_tarefas_v2 (id, id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia)
-        SELECT id, COALESCE(id_usuario, 1), codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, COALESCE(recorrencia_dias, 0), data_recorrencia
+        INSERT INTO tb_tarefas_v2 (id, id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, ultima_atualizacao)
+        SELECT id, COALESCE(id_usuario, 1), codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, COALESCE(recorrencia_dias, 0), data_recorrencia, COALESCE(ultima_atualizacao, datetime('now'))
         FROM tb_tarefas;
         """)
         cur.execute("DROP TABLE tb_tarefas;")
@@ -290,41 +300,87 @@ def init_db():
             (1, 'Unimed Campinas', 'UNIMED', 'Profissional'),
             (1, 'Caldic', 'CALDIC', 'Profissional'),
             (1, 'Eurofarma', 'EUROFARMA', 'Profissional'),
-            (1, 'Vida Pessoal / Hábitos', 'PESSOAL', 'Pessoal')
+            (1, 'Vida Pessoal / Hábitos', 'PESSOAL', 'Pessoal'),
+            (1, 'Carro', 'CARRO', 'Pessoal')
         ]
         cur.executemany("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);", projetos)
 
-    # Carga inicial de tarefas para o usuário 1 se vazio
-    cur.execute("SELECT COUNT(*) FROM tb_tarefas WHERE id_usuario = 1;")
-    if cur.fetchone()[0] == 0:
-        tarefas = [
-            (1, '#001', 7, 'Configuração inicial do Assistente Pessoal', 'Profissional', 'Alta', 'Concluída', 'Estrutura base criada', '2026-10-09', 0),
-            (1, '#002', 1, 'Viabilizar ambiente de QAS', 'Profissional', 'Alta', 'Concluída', 'Ambiente QAS funcionando perfeitamente', '2026-10-09', 0),
-            (1, '#003', 1, 'Ativar e-mail sobre mudança de data de chegada (ZS)', 'Profissional', 'Média', 'Em testes', 'Liberada para testes em QAS', None, 0),
-            (1, '#004', 2, 'Colocar código e descrição do Material no e-mail de aviso (ZS)', 'Profissional', 'Média', 'Em testes', 'Acompanhar homologação dos usuários', None, 0),
-            (1, '#005', 1, 'Atualizar QAS com base em PRD', 'Profissional', 'Alta', 'Concluída', 'Refresh de base finalizado com sucesso', '2026-10-09', 0),
-            (1, '#006', 2, 'Integração de Incoterm na carga do pedido', 'Profissional', 'Alta', 'Não iniciada', 'Mapear campos INCO1 e INCO2 no segmento da BAPI/IDoc', None, 0),
-            (1, '#007', 3, 'Validar lançamentos contábeis com Joel', 'Profissional', 'Alta', 'Não iniciada', 'Agendar 15 min focados nas contas razão', None, 0),
-            (1, '#008', 1, 'Erro ao abrir processo A...000109', 'Profissional', 'Alta', 'Concluída', 'Processo com erro investigado e resolvido', '2026-10-09', 0),
-            (1, '#009', 2, 'Integração da NCM na carga de materiais', 'Profissional', 'Alta', 'Não iniciada', 'Validar campo NCM e regra cadastral', None, 0),
-            (1, '#010', 2, 'Carregar tabela de vias de Transporte', 'Profissional', 'Média', 'Aguardando retorno', 'Aguardando planilha de dados para carga', None, 0),
-            (1, '#011', 2, 'Buscar DOC CFIN com erro, pedir mais detalhes', 'Profissional', 'Alta', 'Aguardando retorno', 'Solicitar detalhes aos usuários (/AIF/ERR)', None, 0),
-            (1, '#012', 2, 'Verificar execução de JOBs', 'Profissional', 'Média', 'Não iniciada', 'Acompanhamento de rotinas em background (SM37)', None, 0),
-            (1, '#013', 2, 'Erro na carga do TXT do despachante (json)', 'Profissional', 'Alta', 'Concluída', 'Parsing e carga do TXT concluídos com sucesso', '2026-10-09', 0),
-            (1, '#014', 2, 'Limpar conditions antes de enviar MIRO', 'Profissional', 'Alta', 'Não iniciada', 'Localizar BAdI/exit antes da BAPI e limpar conditions', None, 0),
-            (1, '#015', 4, 'Correção da interface de fornecedores com MV', 'Profissional', 'Alta', 'Em testes', 'Ajustes concluídos, aguardando testes com MV', None, 0),
-            (1, '#016', 4, 'Interface de NF com 2 pedidos', 'Profissional', 'Alta', 'Em testes', 'Ajustes concluídos, aguardando testes de múltiplos pedidos', None, 0),
-            (1, '#017', 6, 'Aplicar melhorias da Caldic', 'Profissional', 'Média', 'Aguardando retorno', 'Replicar após estabilização na Caldic', None, 0),
-            (1, '#018', 5, 'Atualizar produção', 'Profissional', 'Alta', 'Em andamento', 'Alinhar deploy em produção', None, 0),
-            (1, '#019', 5, 'Refatorar Follow up', 'Profissional', 'Média', 'Não iniciada', 'Otimização de queries SQL e loops aninhados', None, 0),
-            (1, '#020', 5, 'Corrigir eliminação de Invoice', 'Profissional', 'Alta', 'Não iniciada', 'Debugar rotina de exclusão', None, 0),
-            (1, '#P01', 7, 'Fazer Duolingo', 'Pessoal', 'Média', 'Concluída', 'Ofensiva diária mantida hoje', '2026-10-09', 1),
-            (1, '#P02', 7, 'Caminhada, calistênica', 'Pessoal', 'Alta', 'Concluída', 'Separar 30 a 45 min para atividade física', '2026-10-09', 1)
-        ]
-        cur.executemany("""
-        INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-        """, tarefas)
+    # Carregador persistente a partir de seed_tarefas.json (Garante restauração em cold restarts do Render)
+    seed_file = os.path.join(BASE_DIR, "seed_tarefas.json")
+    if os.path.exists(seed_file):
+        try:
+            with open(seed_file, 'r', encoding='utf-8') as sf:
+                seed_data = json.load(sf)
+            for p in seed_data.get('projetos', []):
+                p_nome = p.get('nome', '').strip()
+                p_tipo = p.get('tipo', 'Profissional').strip()
+                if p_nome:
+                    cur.execute("SELECT id FROM tb_projetos WHERE id_usuario = 1 AND LOWER(nome) = LOWER(?);", (p_nome,))
+                    if not cur.fetchone():
+                        cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (1, ?, ?, ?);",
+                                    (p_nome, p_nome[:6].upper(), p_tipo))
+
+            cur.execute("SELECT id, LOWER(nome) FROM tb_projetos WHERE id_usuario = 1;")
+            proj_map = {row[1]: row[0] for row in cur.fetchall()}
+
+            for t in seed_data.get('tarefas', []):
+                cod = t.get('codigo', '').strip()
+                tit = t.get('titulo', '').strip()
+                p_name = (t.get('projeto') or 'Geral').strip().lower()
+                pid = proj_map.get(p_name, 1)
+                tipo = t.get('tipo', 'Profissional').strip()
+                prio = t.get('prioridade', 'Alta').strip()
+                st = t.get('status', 'Não iniciada').strip()
+                obs = t.get('observacoes', '')
+                rec_d = int(t.get('recorrencia_dias', 0))
+                d_conc = t.get('data_conclusao')
+                d_rec = t.get('data_recorrencia')
+                u_at = t.get('ultima_atualizacao') or get_now_br().strftime('%Y-%m-%d %H:%M:%S')
+
+                cur.execute("SELECT id, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = 1 AND codigo = ?;", (cod,))
+                row = cur.fetchone()
+                if not row:
+                    cur.execute("""
+                    INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, ultima_atualizacao)
+                    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """, (cod, pid, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec, u_at))
+                elif not row[1]:
+                    cur.execute("UPDATE tb_tarefas SET ultima_atualizacao = ? WHERE id = ?;", (u_at, row[0]))
+        except Exception as e:
+            print(f"[Seed] Aviso ao carregar seed_tarefas.json: {e}")
+    else:
+        # Carga padrão de fallback se seed_tarefas.json ainda não tiver sido gerado
+        cur.execute("SELECT COUNT(*) FROM tb_tarefas WHERE id_usuario = 1;")
+        if cur.fetchone()[0] == 0:
+            now_str = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
+            tarefas = [
+                (1, '#001', 7, 'Configuração inicial do Assistente Pessoal', 'Profissional', 'Alta', 'Concluída', 'Estrutura base criada', '2026-10-09', 0, now_str),
+                (1, '#002', 1, 'Viabilizar ambiente de QAS', 'Profissional', 'Alta', 'Concluída', 'Ambiente QAS funcionando perfeitamente', '2026-10-09', 0, now_str),
+                (1, '#003', 1, 'Ativar e-mail sobre mudança de data de chegada (ZS)', 'Profissional', 'Média', 'Em testes', 'Liberada para testes em QAS', None, 0, now_str),
+                (1, '#004', 2, 'Colocar código e descrição do Material no e-mail de aviso (ZS)', 'Profissional', 'Média', 'Em testes', 'Acompanhar homologação dos usuários', None, 0, now_str),
+                (1, '#005', 1, 'Atualizar QAS com base em PRD', 'Profissional', 'Alta', 'Concluída', 'Refresh de base finalizado com sucesso', '2026-10-09', 0, now_str),
+                (1, '#006', 2, 'Integração de Incoterm na carga do pedido', 'Profissional', 'Alta', 'Não iniciada', 'Mapear campos INCO1 e INCO2 no segmento da BAPI/IDoc', None, 0, now_str),
+                (1, '#007', 3, 'Validar lançamentos contábeis com Joel', 'Profissional', 'Alta', 'Não iniciada', 'Agendar 15 min focados nas contas razão', None, 0, now_str),
+                (1, '#008', 1, 'Erro ao abrir processo A...000109', 'Profissional', 'Alta', 'Concluída', 'Processo com erro investigado e resolvido', '2026-10-09', 0, now_str),
+                (1, '#009', 2, 'Integração da NCM na carga de materiais', 'Profissional', 'Alta', 'Não iniciada', 'Validar campo NCM e regra cadastral', None, 0, now_str),
+                (1, '#010', 2, 'Carregar tabela de vias de Transporte', 'Profissional', 'Média', 'Aguardando retorno', 'Aguardando planilha de dados para carga', None, 0, now_str),
+                (1, '#011', 2, 'Buscar DOC CFIN com erro, pedir mais detalhes', 'Profissional', 'Alta', 'Aguardando retorno', 'Solicitar detalhes aos usuários (/AIF/ERR)', None, 0, now_str),
+                (1, '#012', 2, 'Verificar execução de JOBs', 'Profissional', 'Média', 'Não iniciada', 'Acompanhamento de rotinas em background (SM37)', None, 0, now_str),
+                (1, '#013', 2, 'Erro na carga do TXT do despachante (json)', 'Profissional', 'Alta', 'Concluída', 'Parsing e carga do TXT concluídos com sucesso', '2026-10-09', 0, now_str),
+                (1, '#014', 2, 'Limpar conditions antes de enviar MIRO', 'Profissional', 'Alta', 'Não iniciada', 'Localizar BAdI/exit antes da BAPI e limpar conditions', None, 0, now_str),
+                (1, '#015', 4, 'Correção da interface de fornecedores com MV', 'Profissional', 'Alta', 'Em testes', 'Ajustes concluídos, aguardando testes com MV', None, 0, now_str),
+                (1, '#016', 4, 'Interface de NF com 2 pedidos', 'Profissional', 'Alta', 'Em testes', 'Ajustes concluídos, aguardando testes de múltiplos pedidos', None, 0, now_str),
+                (1, '#017', 6, 'Aplicar melhorias da Caldic', 'Profissional', 'Média', 'Aguardando retorno', 'Replicar após estabilização na Caldic', None, 0, now_str),
+                (1, '#018', 5, 'Atualizar produção', 'Profissional', 'Alta', 'Em andamento', 'Alinhar deploy em produção', None, 0, now_str),
+                (1, '#019', 5, 'Refatorar Follow up', 'Profissional', 'Média', 'Não iniciada', 'Otimização de queries SQL e loops aninhados', None, 0, now_str),
+                (1, '#020', 5, 'Corrigir eliminação de Invoice', 'Profissional', 'Alta', 'Não iniciada', 'Debugar rotina de exclusão', None, 0, now_str),
+                (1, '#P01', 7, 'Fazer Duolingo', 'Pessoal', 'Média', 'Concluída', 'Ofensiva diária mantida hoje', '2026-10-09', 1, now_str),
+                (1, '#P02', 7, 'Caminhada, calistênica', 'Pessoal', 'Alta', 'Concluída', 'Separar 30 a 45 min para atividade física', '2026-10-09', 1, now_str)
+            ]
+            cur.executemany("""
+            INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, ultima_atualizacao)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """, tarefas)
 
     # Carga inicial de status para usuário 1 se vazio
     cur.execute("SELECT COUNT(*) FROM tb_status WHERE id_usuario = 1;")
@@ -507,7 +563,8 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             cur = conn.cursor()
             cur.execute("""
             SELECT t.id, t.codigo, p.id AS projeto_id, p.nome AS projeto, t.titulo, t.tipo, t.prioridade, 
-                   t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia
+                   t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia,
+                   t.ultima_atualizacao
             FROM tb_tarefas t
             LEFT JOIN tb_projetos p ON t.id_projeto = p.id
             WHERE t.id_usuario = ?
@@ -519,6 +576,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                     WHEN 'Não iniciada' THEN 4
                     WHEN 'Liberado p/ testes' THEN 5 
                     WHEN 'Aguardando testes' THEN 6 
+                    WHEN 'Em testes' THEN 6
                     WHEN 'Planejada' THEN 7 
                     ELSE 8 
                 END,
@@ -688,22 +746,23 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
 
                 data_conc = None
                 data_rec = None
+                now_str = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
                 if novo_status == 'Concluída':
                     now_br = get_now_br()
-                    data_conc = now_br.strftime('%Y-%m-%d %H:%M:%S')
+                    data_conc = now_str
                     if rec_dias and rec_dias > 0:
                         data_rec = calculate_recurrence_target(rec_dias, now_br)
                     cur.execute("""
                     UPDATE tb_tarefas 
-                    SET status = ?, data_conclusao = ?, data_recorrencia = ? 
+                    SET status = ?, data_conclusao = ?, data_recorrencia = ?, ultima_atualizacao = ? 
                     WHERE id_usuario = ? AND codigo = ?;
-                    """, (novo_status, data_conc, data_rec, uid, codigo))
+                    """, (novo_status, data_conc, data_rec, now_str, uid, codigo))
                 else:
                     cur.execute("""
                     UPDATE tb_tarefas 
-                    SET status = ?, data_conclusao = NULL, data_recorrencia = NULL 
+                    SET status = ?, data_conclusao = NULL, data_recorrencia = NULL, ultima_atualizacao = ? 
                     WHERE id_usuario = ? AND codigo = ?;
-                    """, (novo_status, uid, codigo))
+                    """, (novo_status, now_str, uid, codigo))
 
                 cur.execute("INSERT INTO tb_historico (id_usuario, codigo_tarefa, descricao) VALUES (?, ?, ?);", 
                             (uid, codigo, f"Status atualizado para: {novo_status}"))
@@ -772,12 +831,11 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                 old_conc = old_row[1] if old_row else None
                 old_rec = old_row[2] if old_row else None
 
-                data_conc = old_conc
-                data_rec = old_rec
+                now_str = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
                 if status == 'Concluída':
                     now_br = get_now_br()
                     if old_status != 'Concluída' or not data_conc:
-                        data_conc = now_br.strftime('%Y-%m-%d %H:%M:%S')
+                        data_conc = now_str
                     if recorrencia_dias > 0:
                         data_rec = calculate_recurrence_target(recorrencia_dias, now_br)
                     else:
@@ -789,9 +847,9 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                 cur.execute("""
                 UPDATE tb_tarefas
                 SET titulo = ?, id_projeto = ?, prioridade = ?, tipo = ?, status = ?, observacoes = ?, 
-                    recorrencia_dias = ?, data_conclusao = ?, data_recorrencia = ?
+                    recorrencia_dias = ?, data_conclusao = ?, data_recorrencia = ?, ultima_atualizacao = ?
                 WHERE id_usuario = ? AND codigo = ?;
-                """, (titulo, projeto_id, prioridade, tipo, status, observacoes, recorrencia_dias, data_conc, data_rec, uid, codigo))
+                """, (titulo, projeto_id, prioridade, tipo, status, observacoes, recorrencia_dias, data_conc, data_rec, now_str, uid, codigo))
                 cur.execute("INSERT INTO tb_historico (id_usuario, codigo_tarefa, descricao) VALUES (?, ?, ?);", 
                             (uid, codigo, f"Tarefa editada: {titulo}"))
                 conn.commit()
@@ -930,10 +988,11 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                     else:
                         codigo = "#001"
 
+                now_str = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
                 cur.execute("""
-                INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias)
-                VALUES (?, ?, ?, ?, ?, ?, 'Não iniciada', ?, ?);
-                """, (uid, codigo, projeto_id, titulo, tipo, prioridade, observacoes, recorrencia_dias))
+                INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, ultima_atualizacao)
+                VALUES (?, ?, ?, ?, ?, ?, 'Não iniciada', ?, ?, ?);
+                """, (uid, codigo, projeto_id, titulo, tipo, prioridade, observacoes, recorrencia_dias, now_str))
 
                 cur.execute("INSERT INTO tb_historico (id_usuario, codigo_tarefa, descricao) VALUES (?, ?, ?);", 
                             (uid, codigo, f"Nova tarefa criada: {titulo}"))
@@ -975,13 +1034,15 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 data = json.loads(body)
                 changes = data.get('changes', [])
+                incoming_tarefas = data.get('tarefas', [])
                 client_id = data.get('client_id', 'unknown')
+                now_str = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
                 
                 conn = sqlite3.connect(DB_FILE)
                 conn.row_factory = sqlite3.Row
                 cur = conn.cursor()
                 
-                # Sincroniza projetos enviados pelo cliente
+                # 1. Sincroniza projetos enviados pelo cliente
                 client_projs = data.get('projetos', [])
                 for cp in client_projs:
                     p_name = cp.get('nome', '').strip()
@@ -992,25 +1053,80 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                             cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
                                         (uid, p_name, p_name[:6].upper(), p_tipo))
 
+                # Mapa atualizado de projetos
+                cur.execute("SELECT id, LOWER(nome) FROM tb_projetos WHERE id_usuario = ?;", (uid,))
+                proj_map = {row[1]: row[0] for row in cur.fetchall()}
+
                 applied = 0
+
+                # 2. Reconciliação bidirecional de tarefas enviadas em lote (Desktop snapshot com timestamp)
+                for item in incoming_tarefas:
+                    cod = item.get('codigo', '').strip()
+                    tit = item.get('titulo', '').strip()
+                    p_name = (item.get('projeto') or 'Geral').strip().lower()
+                    proj_id = proj_map.get(p_name, 1)
+                    tipo = item.get('tipo', 'Profissional').strip()
+                    prio = item.get('prioridade', 'Alta').strip()
+                    st = item.get('status', 'Não iniciada').strip()
+                    obs = item.get('observacoes', '').strip()
+                    rec_d = int(item.get('recorrencia_dias', 0))
+                    d_conc = item.get('data_conclusao')
+                    d_rec = item.get('data_recorrencia')
+                    in_ts = (item.get('ultima_atualizacao') or '').strip()
+
+                    if not cod or not tit:
+                        continue
+
+                    cur.execute("SELECT id, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
+                    row = cur.fetchone()
+                    if row:
+                        cloud_id = row['id']
+                        cloud_ts = (row['ultima_atualizacao'] or '').strip()
+                        # Se a tarefa recebida tem carimbo mais recente ou a nuvem não tinha carimbo, atualiza a nuvem
+                        if in_ts > cloud_ts or not cloud_ts:
+                            cur.execute("""
+                            UPDATE tb_tarefas 
+                            SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?,
+                                observacoes = ?, recorrencia_dias = ?, data_conclusao = ?, data_recorrencia = ?,
+                                ultima_atualizacao = ?
+                            WHERE id = ?;
+                            """, (tit, proj_id, tipo, prio, st, obs, rec_d, d_conc, d_rec, in_ts or now_str, cloud_id))
+                            applied += 1
+                    else:
+                        # Tarefa não existe na nuvem -> Insere diretamente
+                        cur.execute("""
+                        INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status,
+                                                observacoes, data_conclusao, recorrencia_dias, data_recorrencia, ultima_atualizacao)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        """, (uid, cod, proj_id, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec, in_ts or now_str))
+                        applied += 1
+
+                # 3. Processa deltas explícitos de ações (ex: do PWA Mobile)
                 for item in changes:
                     action = item.get('action')
+                    act_ts = item.get('timestamp') or now_str
+                    if 'T' in act_ts:
+                        act_ts = act_ts.replace('T', ' ').split('.')[0]
+
                     if action == 'status':
                         cod = item.get('codigo', '').strip()
                         st = item.get('status', '').strip()
                         if cod and st:
-                            cur.execute("SELECT recorrencia_dias FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
+                            cur.execute("SELECT recorrencia_dias, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
                             row = cur.fetchone()
-                            rec_d = row[0] if row else 0
-                            data_conc = None
-                            data_rec = None
-                            if st == 'Concluída':
-                                now_br = get_now_br()
-                                data_conc = now_br.strftime('%Y-%m-%d %H:%M:%S')
-                                if rec_d > 0:
-                                    data_rec = calculate_recurrence_target(rec_d, now_br)
-                            cur.execute("UPDATE tb_tarefas SET status = ?, data_conclusao = ?, data_recorrencia = ? WHERE id_usuario = ? AND codigo = ?;", (st, data_conc, data_rec, uid, cod))
-                            applied += 1
+                            rec_d = row['recorrencia_dias'] if row else 0
+                            cloud_ts = (row['ultima_atualizacao'] if row else '') or ''
+                            if act_ts >= cloud_ts or not cloud_ts:
+                                data_conc = None
+                                data_rec = None
+                                if st == 'Concluída':
+                                    now_br = get_now_br()
+                                    data_conc = now_str
+                                    if rec_d > 0:
+                                        data_rec = calculate_recurrence_target(rec_d, now_br)
+                                cur.execute("UPDATE tb_tarefas SET status = ?, data_conclusao = ?, data_recorrencia = ?, ultima_atualizacao = ? WHERE id_usuario = ? AND codigo = ?;",
+                                            (st, data_conc, data_rec, act_ts, uid, cod))
+                                applied += 1
                     elif action == 'nova':
                         tit = item.get('titulo', '').strip()
                         proj_in = str(item.get('projeto', '') or item.get('projeto_id', '')).strip()
@@ -1019,32 +1135,25 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                         obs = item.get('observacoes', '').strip()
                         rec_d = int(item.get('recorrencia_dias', 0))
                         if tit:
-                            projeto_id = 1
-                            if proj_in.isdigit():
-                                projeto_id = int(proj_in)
-                            elif proj_in:
-                                cur.execute("SELECT id FROM tb_projetos WHERE id_usuario = ? AND LOWER(nome) = LOWER(?);", (uid, proj_in))
-                                found = cur.fetchone()
-                                if found:
-                                    projeto_id = found[0]
-                                else:
-                                    cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);", (uid, proj_in, proj_in[:6].upper(), tipo))
-                                    projeto_id = cur.lastrowid
-                            else:
-                                cur.execute("SELECT id FROM tb_projetos WHERE id_usuario = ? ORDER BY id ASC LIMIT 1;", (uid,))
-                                proj_f = cur.fetchone()
-                                if proj_f:
-                                    projeto_id = proj_f[0]
+                            proj_id = proj_map.get(proj_in.lower(), 1)
+                            if proj_in and proj_in.lower() not in proj_map:
+                                cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
+                                            (uid, proj_in, proj_in[:6].upper(), tipo))
+                                proj_id = cur.lastrowid
+                                proj_map[proj_in.lower()] = proj_id
 
                             if tipo == 'Pessoal':
                                 cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
                                 last = cur.fetchone()
-                                cod = f"#P{int(re.sub(r'\\D', '', last[0]) or 0) + 1:02d}" if last else "#P01"
+                                cod = f"#P{int(re.sub(r'\\D', '', last['codigo']) or 0) + 1:02d}" if last else "#P01"
                             else:
                                 cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo NOT LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
                                 last = cur.fetchone()
-                                cod = f"#{int(re.sub(r'\\D', '', last[0]) or 0) + 1:03d}" if last else "#001"
-                            cur.execute("INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias) VALUES (?, ?, ?, ?, ?, ?, 'Não iniciada', ?, ?);", (uid, cod, projeto_id, tit, tipo, prio, obs, rec_d))
+                                cod = f"#{int(re.sub(r'\\D', '', last['codigo']) or 0) + 1:03d}" if last else "#001"
+                            cur.execute("""
+                            INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, ultima_atualizacao)
+                            VALUES (?, ?, ?, ?, ?, ?, 'Não iniciada', ?, ?, ?);
+                            """, (uid, cod, proj_id, tit, tipo, prio, obs, rec_d, act_ts))
                             applied += 1
                     elif action == 'editar':
                         cod = item.get('codigo', '').strip()
@@ -1056,61 +1165,40 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                         obs = item.get('observacoes', '').strip()
                         rec_d = int(item.get('recorrencia_dias', 0))
                         if cod and tit:
-                            projeto_id = 1
-                            if proj_in.isdigit():
-                                projeto_id = int(proj_in)
-                            elif proj_in:
-                                cur.execute("SELECT id FROM tb_projetos WHERE id_usuario = ? AND LOWER(nome) = LOWER(?);", (uid, proj_in))
-                                found = cur.fetchone()
-                                if found:
-                                    projeto_id = found[0]
-                                else:
-                                    cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);", (uid, proj_in, proj_in[:6].upper(), tipo))
-                                    projeto_id = cur.lastrowid
-                            else:
-                                cur.execute("SELECT id FROM tb_projetos WHERE id_usuario = ? ORDER BY id ASC LIMIT 1;", (uid,))
-                                proj_f = cur.fetchone()
-                                if proj_f:
-                                    projeto_id = proj_f[0]
+                            proj_id = proj_map.get(proj_in.lower(), 1)
+                            if proj_in and proj_in.lower() not in proj_map:
+                                cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
+                                            (uid, proj_in, proj_in[:6].upper(), tipo))
+                                proj_id = cur.lastrowid
+                                proj_map[proj_in.lower()] = proj_id
 
-                            cur.execute("SELECT id, titulo FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
+                            cur.execute("SELECT id, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
                             row = cur.fetchone()
                             if row:
-                                ex_id, ex_tit = row[0], row[1]
-                                # Prevenção contra colisão de códigos gerados offline por nós diferentes
-                                if ex_tit and tit and ex_tit.strip().lower() != tit.strip().lower():
-                                    if tipo == 'Pessoal':
-                                        cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
-                                        last = cur.fetchone()
-                                        new_cod = f"#P{int(re.sub(r'\\D', '', last[0]) or 0) + 1:02d}" if last else "#P01"
-                                    else:
-                                        cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo NOT LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
-                                        last = cur.fetchone()
-                                        new_cod = f"#{int(re.sub(r'\\D', '', last[0]) or 0) + 1:03d}" if last else "#001"
-                                    cur.execute("""
-                                    INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-                                    """, (uid, new_cod, projeto_id, tit, tipo, prio, st, obs, rec_d))
-                                else:
+                                cloud_ts = (row['ultima_atualizacao'] or '').strip()
+                                if act_ts >= cloud_ts or not cloud_ts:
                                     cur.execute("""
                                     UPDATE tb_tarefas 
-                                    SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?, observacoes = ?, recorrencia_dias = ? 
+                                    SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?,
+                                        observacoes = ?, recorrencia_dias = ?, ultima_atualizacao = ?
                                     WHERE id = ?;
-                                    """, (tit, projeto_id, tipo, prio, st, obs, rec_d, ex_id))
+                                    """, (tit, proj_id, tipo, prio, st, obs, rec_d, act_ts, row['id']))
+                                    applied += 1
                             else:
                                 cur.execute("""
-                                INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-                                """, (uid, cod, projeto_id, tit, tipo, prio, st, obs, rec_d))
-                            applied += 1
-                
+                                INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, ultima_atualizacao)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                                """, (uid, cod, proj_id, tit, tipo, prio, st, obs, rec_d, act_ts))
+                                applied += 1
+
                 conn.commit()
-                
-                # Retorna dados atualizados filtrados pelo usuário
+
+                # Retorna dados atualizados filtrados pelo usuário com ultima_atualizacao
                 check_recurrence()
                 cur.execute("""
                 SELECT t.id, t.codigo, p.id AS projeto_id, p.nome AS projeto, t.titulo, t.tipo, t.prioridade, 
-                       t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia
+                       t.status, t.observacoes, t.recorrencia_dias, t.data_conclusao, t.data_recorrencia,
+                       t.ultima_atualizacao
                 FROM tb_tarefas t
                 LEFT JOIN tb_projetos p ON t.id_projeto = p.id
                 WHERE t.id_usuario = ?
@@ -1136,11 +1224,11 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
                 cur.execute("SELECT id, nome, cor, borda, bg, ordem FROM tb_prioridades WHERE id_usuario = ? AND ativo = 1 ORDER BY ordem, id;", (uid,))
                 prio_list = [dict(r) for r in cur.fetchall()]
                 conn.close()
-                
+
                 self._send_json({
                     "success": True,
                     "applied_changes": applied,
-                    "server_time": get_now_br().strftime('%Y-%m-%dT%H:%M:%S'),
+                    "server_time": now_str,
                     "tarefas": tarefas,
                     "projetos": projetos,
                     "status": status_list,
