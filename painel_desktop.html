@@ -1082,7 +1082,7 @@
           await loadDominios();
           await loadTasks();
         } else {
-          showToast("⚠️ " + (data.error || "Falha na sincronização"));
+          showToast("⚠️ " + (data.mensagem || data.error || "Falha na sincronização"));
         }
       } catch (e) {
         showToast("⚠️ Nuvem inacessível (Stand Alone ativo)");

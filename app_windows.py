@@ -19,7 +19,7 @@ import urllib.request
 import urllib.error
 import sqlite3
 import re
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 
 # Fuso Horário de Brasília (UTC-3) conforme diretriz global do projeto
 TZ_BR = timezone(timedelta(hours=-3))
@@ -27,6 +27,27 @@ TZ_BR = timezone(timedelta(hours=-3))
 def get_now_br():
     """Retorna datetime no fuso de Brasília (UTC-3)."""
     return datetime.now(timezone.utc).astimezone(TZ_BR).replace(tzinfo=None)
+
+def normalize_dt(val):
+    """Converte valores de data/hora (string ou datetime) para objeto datetime seguro contra erro 22007 do SQL Server."""
+    if not val:
+        return None
+    if isinstance(val, datetime):
+        return val
+    if isinstance(val, date):
+        return datetime.combine(val, datetime.min.time())
+    s = str(val).strip()
+    if not s or s.lower() in ('none', 'null', 'nan'):
+        return None
+    s = s.replace('T', ' ')
+    if '.' in s:
+        s = s.split('.')[0]
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            pass
+    return None
 
 # Diretórios e Configurações
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -67,6 +88,10 @@ def get_db_connection():
     if CACHED_CONN_STR:
         try:
             conn = pyodbc.connect(CACHED_CONN_STR, timeout=4)
+            try:
+                conn.cursor().execute("SET DATEFORMAT ymd;")
+            except Exception:
+                pass
             return conn
         except Exception:
             CACHED_CONN_STR = None
@@ -108,6 +133,10 @@ def get_db_connection():
 
             try:
                 conn = pyodbc.connect(conn_str, timeout=4)
+                try:
+                    conn.cursor().execute("SET DATEFORMAT ymd;")
+                except Exception:
+                    pass
                 log_event(f"[SQL] Conectado com sucesso ao SQL Server! (Driver: '{driver}' | Servidor: '{server}')")
                 CACHED_CONN_STR = conn_str
                 return conn
@@ -125,6 +154,10 @@ def get_db_connection():
 
             try:
                 conn = pyodbc.connect(conn_str_win, timeout=3)
+                try:
+                    conn.cursor().execute("SET DATEFORMAT ymd;")
+                except Exception:
+                    pass
                 log_event(f"[SQL] Conectado via Autenticação Windows! (Driver: '{driver}' | Servidor: '{server}')")
                 CACHED_CONN_STR = conn_str_win
                 return conn
@@ -461,6 +494,20 @@ def sync_with_cloud(verbose=False):
             else:
                 cur.execute("SELECT id, ultima_atualizacao, sync_pendente FROM tb_tarefas WHERE codigo = ?;", (cod,))
 
+            # Tratamento robusto para colunas DATETIME do SQL Server / SQLite
+            dt_ts = normalize_dt(cloud_ts) or get_now_br()
+            dt_conc = normalize_dt(d_conc)
+            dt_rec = normalize_dt(d_rec)
+
+            if use_sql:
+                val_ts = dt_ts
+                val_conc = dt_conc
+                val_rec = dt_rec
+            else:
+                val_ts = dt_ts.strftime('%Y-%m-%d %H:%M:%S')
+                val_conc = dt_conc.strftime('%Y-%m-%d %H:%M:%S') if dt_conc else None
+                val_rec = dt_rec.strftime('%Y-%m-%d %H:%M:%S') if dt_rec else None
+
             row = cur.fetchone()
             if row:
                 loc_id = row[0]
@@ -475,7 +522,7 @@ def sync_with_cloud(verbose=False):
                         observacoes = ?, data_conclusao = ?, recorrencia_dias = ?, data_recorrencia = ?,
                         ultima_atualizacao = ?, sync_pendente = 0
                     WHERE codigo = ?;
-                    """, (tit, proj_id, tipo, prio, st, obs, d_conc, rec_d, d_rec, cloud_ts or now_str, cod))
+                    """, (tit, proj_id, tipo, prio, st, obs, val_conc, rec_d, val_rec, val_ts, cod))
                 elif loc_ts > cloud_ts:
                     # Desktop é mais recente: mantém e deixa sync_pendente = 1
                     pass
@@ -488,7 +535,7 @@ def sync_with_cloud(verbose=False):
                 cur.execute("""
                 INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, data_conclusao, recorrencia_dias, data_recorrencia, ultima_atualizacao, sync_pendente)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
-                """, (cod, proj_id, tit, tipo, prio, st, obs, d_conc, rec_d, d_rec, cloud_ts or now_str))
+                """, (cod, proj_id, tit, tipo, prio, st, obs, val_conc, rec_d, val_rec, val_ts))
 
         for c in local_changes:
             c_cod = c.get("codigo")
@@ -855,7 +902,7 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
                 num = int(re.sub(r'\D', '', last[0]) or 0) if last else 0
                 cod = f"#{num + 1:03d}"
 
-            now_dt = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
+            now_dt = get_now_br() if use_sql else get_now_br().strftime('%Y-%m-%d %H:%M:%S')
             cur.execute("""
             INSERT INTO tb_tarefas (codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, sync_pendente, ultima_atualizacao)
             VALUES (?, ?, ?, ?, ?, 'Não iniciada', ?, ?, 1, ?);
@@ -867,8 +914,8 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
         elif clean_path == '/api/tarefa/status':
             cod = data.get('codigo', '').strip()
             novo_st = data.get('status', 'Não iniciada').strip()
-            d_conc = get_now_br().strftime('%Y-%m-%dT%H:%M:%S') if novo_st == 'Concluída' else None
-            now_dt = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
+            now_dt = get_now_br() if use_sql else get_now_br().strftime('%Y-%m-%d %H:%M:%S')
+            d_conc = (get_now_br() if use_sql else get_now_br().strftime('%Y-%m-%dT%H:%M:%S')) if novo_st == 'Concluída' else None
             cur.execute("""
             UPDATE tb_tarefas 
             SET status = ?, data_conclusao = ?, sync_pendente = 1, ultima_atualizacao = ? 
@@ -892,7 +939,7 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
             row = cur.fetchone()
             proj_id = row[0] if row else 1
 
-            now_dt = get_now_br().strftime('%Y-%m-%d %H:%M:%S')
+            now_dt = get_now_br() if use_sql else get_now_br().strftime('%Y-%m-%d %H:%M:%S')
             cur.execute("""
             UPDATE tb_tarefas 
             SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?, recorrencia_dias = ?, observacoes = ?, sync_pendente = 1, ultima_atualizacao = ?

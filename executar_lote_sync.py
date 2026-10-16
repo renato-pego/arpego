@@ -39,7 +39,7 @@ def main():
     # 3. Git add, commit e push para o Render
     print("\n📦 Git: versionando e enviando para o repositório principal...")
     run_cmd(["git", "add", "app.py", "app_windows.py", "painel.html", "painel_desktop.html", "sw.js", "dump_seed_and_sync.py", "seed_tarefas.json", "executar_lote_sync.py"])
-    run_cmd(["git", "commit", "-m", "fix(sync): corrigir regex no sync, quebrar loop infinito no PWA e atualizar SW v9"])
+    run_cmd(["git", "commit", "-m", "fix(desktop): blindar conversao de datetime no SQL Server eliminando erro 22007"])
     run_cmd(["git", "push", "origin", "main"])
 
     print("\n" + "=" * 65)
