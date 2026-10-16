@@ -274,7 +274,7 @@
         <img src="/icon.svg" alt="ARPego" class="brand-icon">
       </button>
       <h1 onclick="openLegendModal()" style="cursor: pointer;" title="Clique para ver o significado das cores">Assistente Pessoal - ARPego</h1>
-      <span id="net-badge" class="net-badge online" title="Status da Conexão">🟢 Online</span>
+      <span id="net-badge" class="net-badge online" onclick="handleBadgeClick()" style="cursor: pointer;" title="Status da Conexão. Clique para verificar sincronização">🟢 Online</span>
     </div>
     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
       <div id="user-pill" class="user-pill" onclick="promptSwitchUser()" title="Usuário conectado. Clique para trocar ou sair." style="display: none;">
@@ -1148,25 +1148,41 @@
 
     // Status de Conexão e Sincronização
     let isSyncing = false;
+    let syncErrorState = false;
+    let syncRetryTimer = null;
+
     function updateNetworkStatus() {
       const badge = document.getElementById('net-badge');
       if (!badge) return;
       const q = getOfflineQueue();
       if (navigator.onLine) {
         if (q.length > 0) {
-          badge.className = 'net-badge offline';
-          badge.innerText = `⏳ Sincronizando (${q.length})...`;
-          flushOfflineQueue();
+          if (syncErrorState) {
+            badge.className = 'net-badge offline';
+            badge.innerText = `⚠️ Sync pendente (${q.length})`;
+            badge.title = 'Houve um erro no envio. Toque para tentar novamente ou limpar fila.';
+          } else {
+            badge.className = 'net-badge offline';
+            badge.innerText = `⏳ Sincronizando (${q.length})...`;
+            badge.title = 'Enviando alterações pendentes para a nuvem...';
+            flushOfflineQueue();
+          }
         } else {
+          syncErrorState = false;
           badge.className = 'net-badge online';
           badge.innerText = '🟢 Online';
+          badge.title = 'Conectado à nuvem. Dados sincronizados.';
         }
       } else {
         badge.className = 'net-badge offline';
         badge.innerText = q.length > 0 ? `🟠 Offline (${q.length} pend.)` : '🟠 Offline (Local)';
+        badge.title = 'Sem conexão com a internet. Modificações serão salvas localmente.';
       }
     }
-    window.addEventListener('online', () => { updateNetworkStatus(); flushOfflineQueue(); });
+    window.addEventListener('online', () => { 
+      syncErrorState = false; 
+      updateNetworkStatus(); 
+    });
     window.addEventListener('offline', updateNetworkStatus);
 
     async function flushOfflineQueue() {
@@ -1179,8 +1195,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ client_id: 'pwa-mobile', changes: q })
         });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
         if (data.success) {
+          syncErrorState = false;
           clearOfflineQueue();
           if (data.tarefas) {
             allTasks = data.tarefas;
@@ -1196,22 +1216,79 @@
             setCachedDominios({ status: data.status, prioridades: data.prioridades });
           }
           showToast('✅ Sincronizado com a nuvem!');
+        } else {
+          throw new Error(data.error || 'Falha na resposta do servidor');
         }
       } catch (e) {
-        console.log('Sincronização offline postergada:', e);
+        console.warn('Sincronização offline postergada:', e);
+        syncErrorState = true;
+        clearTimeout(syncRetryTimer);
+        syncRetryTimer = setTimeout(() => {
+          syncErrorState = false;
+          updateNetworkStatus();
+        }, 20000);
       } finally {
         isSyncing = false;
-        updateNetworkStatus();
+        const badge = document.getElementById('net-badge');
+        if (badge) {
+          const currentQ = getOfflineQueue();
+          if (currentQ.length === 0) {
+            syncErrorState = false;
+            badge.className = 'net-badge online';
+            badge.innerText = '🟢 Online';
+            badge.title = 'Conectado à nuvem. Dados sincronizados.';
+          } else if (syncErrorState) {
+            badge.className = 'net-badge offline';
+            badge.innerText = `⚠️ Sync pausado (${currentQ.length})`;
+            badge.title = 'Falha ao sincronizar. Toque para tentar novamente ou descartar.';
+          }
+        }
       }
     }
 
-    // Registro do Service Worker com forçamento de versão v8
+    function handleBadgeClick() {
+      const q = getOfflineQueue();
+      if (q.length === 0) {
+        if (navigator.onLine) {
+          showToast('🟢 Aplicativo 100% sincronizado com a nuvem.');
+          loadTasks();
+        } else {
+          showToast('🟠 Modo offline ativo. Todas as alterações salvas localmente.');
+        }
+        return;
+      }
+
+      const conf = confirm(
+        `Existem ${q.length} alteração(ões) pendente(s) na fila local do seu dispositivo.\n\n` +
+        `• Pressione OK para FORÇAR o envio imediato para a nuvem.\n` +
+        `• Pressione Cancelar se desejar a opção de LIMPAR a fila para destravar o aplicativo.`
+      );
+
+      if (conf) {
+        syncErrorState = false;
+        showToast('⏳ Tentando sincronizar...');
+        flushOfflineQueue();
+      } else {
+        const limpar = confirm(
+          `Deseja realmente LIMPAR as ${q.length} alteração(ões) pendentes na fila deste celular?\n\n` +
+          `Isso destrava o aplicativo e sincroniza o estado diretamente com a nuvem.`
+        );
+        if (limpar) {
+          syncErrorState = false;
+          clearOfflineQueue();
+          showToast('🧹 Fila offline redefinida!');
+          loadTasks();
+        }
+      }
+    }
+
+    // Registro do Service Worker com forçamento de versão v9
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=8')
+        navigator.serviceWorker.register('/sw.js?v=9')
           .then(reg => {
             reg.update();
-            console.log('ServiceWorker ativo v8:', reg.scope);
+            console.log('ServiceWorker ativo v9:', reg.scope);
           })
           .catch(err => console.log('ServiceWorker falhou:', err));
       });

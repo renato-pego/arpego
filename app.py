@@ -671,8 +671,9 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         uid = self.get_current_user_id()
+        clean_path = self.path.split('?', 1)[0].split('#', 1)[0]
 
-        if self.path == '/api/auth/login':
+        if clean_path == '/api/auth/login':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -706,7 +707,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/auth/cadastro':
+        elif clean_path == '/api/auth/cadastro':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -728,7 +729,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/tarefa/status':
+        elif clean_path == '/api/tarefa/status':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -789,7 +790,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/tarefa/editar':
+        elif clean_path == '/api/tarefa/editar':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -863,7 +864,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/tarefa/excluir':
+        elif clean_path == '/api/tarefa/excluir':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -886,7 +887,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/credenciais':
+        elif clean_path == '/api/credenciais':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -916,7 +917,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/credenciais/excluir':
+        elif clean_path == '/api/credenciais/excluir':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -936,7 +937,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/tarefa/nova':
+        elif clean_path == '/api/tarefa/nova':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -1032,7 +1033,7 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == '/api/sync':
+        elif clean_path == '/api/sync':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             try:
@@ -1107,93 +1108,101 @@ class CloudAssistantHandler(http.server.SimpleHTTPRequestHandler):
 
                 # 3. Processa deltas explícitos de ações (ex: do PWA Mobile)
                 for item in changes:
-                    action = item.get('action')
-                    act_ts = item.get('timestamp') or now_str
-                    if 'T' in act_ts:
-                        act_ts = act_ts.replace('T', ' ').split('.')[0]
+                    try:
+                        action = item.get('action')
+                        act_ts = item.get('timestamp') or now_str
+                        if 'T' in act_ts:
+                            act_ts = act_ts.replace('T', ' ').split('.')[0]
 
-                    if action == 'status':
-                        cod = item.get('codigo', '').strip()
-                        st = item.get('status', '').strip()
-                        if cod and st:
-                            cur.execute("SELECT recorrencia_dias, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
-                            row = cur.fetchone()
-                            rec_d = row['recorrencia_dias'] if row else 0
-                            cloud_ts = (row['ultima_atualizacao'] if row else '') or ''
-                            if act_ts >= cloud_ts or not cloud_ts:
-                                data_conc = None
-                                data_rec = None
-                                if st == 'Concluída':
-                                    now_br = get_now_br()
-                                    data_conc = now_str
-                                    if rec_d > 0:
-                                        data_rec = calculate_recurrence_target(rec_d, now_br)
-                                cur.execute("UPDATE tb_tarefas SET status = ?, data_conclusao = ?, data_recorrencia = ?, ultima_atualizacao = ? WHERE id_usuario = ? AND codigo = ?;",
-                                            (st, data_conc, data_rec, act_ts, uid, cod))
-                                applied += 1
-                    elif action == 'nova':
-                        tit = item.get('titulo', '').strip()
-                        proj_in = str(item.get('projeto', '') or item.get('projeto_id', '')).strip()
-                        tipo = item.get('tipo', 'Profissional').strip()
-                        prio = item.get('prioridade', 'Alta').strip()
-                        obs = item.get('observacoes', '').strip()
-                        rec_d = int(item.get('recorrencia_dias', 0))
-                        if tit:
-                            proj_id = proj_map.get(proj_in.lower(), 1)
-                            if proj_in and proj_in.lower() not in proj_map:
-                                cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
-                                            (uid, proj_in, proj_in[:6].upper(), tipo))
-                                proj_id = cur.lastrowid
-                                proj_map[proj_in.lower()] = proj_id
-
-                            if tipo == 'Pessoal':
-                                cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
-                                last = cur.fetchone()
-                                cod = f"#P{int(re.sub(r'\\D', '', last['codigo']) or 0) + 1:02d}" if last else "#P01"
-                            else:
-                                cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo NOT LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
-                                last = cur.fetchone()
-                                cod = f"#{int(re.sub(r'\\D', '', last['codigo']) or 0) + 1:03d}" if last else "#001"
-                            cur.execute("""
-                            INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, ultima_atualizacao)
-                            VALUES (?, ?, ?, ?, ?, ?, 'Não iniciada', ?, ?, ?);
-                            """, (uid, cod, proj_id, tit, tipo, prio, obs, rec_d, act_ts))
-                            applied += 1
-                    elif action == 'editar':
-                        cod = item.get('codigo', '').strip()
-                        tit = item.get('titulo', '').strip()
-                        proj_in = str(item.get('projeto', '') or item.get('projeto_id', '')).strip()
-                        tipo = item.get('tipo', 'Profissional').strip()
-                        prio = item.get('prioridade', 'Alta').strip()
-                        st = item.get('status', 'Não iniciada').strip()
-                        obs = item.get('observacoes', '').strip()
-                        rec_d = int(item.get('recorrencia_dias', 0))
-                        if cod and tit:
-                            proj_id = proj_map.get(proj_in.lower(), 1)
-                            if proj_in and proj_in.lower() not in proj_map:
-                                cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
-                                            (uid, proj_in, proj_in[:6].upper(), tipo))
-                                proj_id = cur.lastrowid
-                                proj_map[proj_in.lower()] = proj_id
-
-                            cur.execute("SELECT id, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
-                            row = cur.fetchone()
-                            if row:
-                                cloud_ts = (row['ultima_atualizacao'] or '').strip()
+                        if action == 'status':
+                            cod = item.get('codigo', '').strip()
+                            st = item.get('status', '').strip()
+                            if cod and st:
+                                cur.execute("SELECT recorrencia_dias, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
+                                row = cur.fetchone()
+                                rec_d = row['recorrencia_dias'] if row else 0
+                                cloud_ts = (row['ultima_atualizacao'] if row else '') or ''
                                 if act_ts >= cloud_ts or not cloud_ts:
-                                    cur.execute("""
-                                    UPDATE tb_tarefas 
-                                    SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?,
-                                        observacoes = ?, recorrencia_dias = ?, ultima_atualizacao = ?
-                                    WHERE id = ?;
-                                    """, (tit, proj_id, tipo, prio, st, obs, rec_d, act_ts, row['id']))
+                                    data_conc = None
+                                    data_rec = None
+                                    if st == 'Concluída':
+                                        now_br = get_now_br()
+                                        data_conc = now_str
+                                        if rec_d > 0:
+                                            data_rec = calculate_recurrence_target(rec_d, now_br)
+                                    cur.execute("UPDATE tb_tarefas SET status = ?, data_conclusao = ?, data_recorrencia = ?, ultima_atualizacao = ? WHERE id_usuario = ? AND codigo = ?;",
+                                                (st, data_conc, data_rec, act_ts, uid, cod))
                                     applied += 1
-                            else:
+                        elif action == 'nova':
+                            tit = item.get('titulo', '').strip()
+                            proj_in = str(item.get('projeto', '') or item.get('projeto_id', '')).strip()
+                            tipo = item.get('tipo', 'Profissional').strip()
+                            prio = item.get('prioridade', 'Alta').strip()
+                            obs = item.get('observacoes', '').strip()
+                            rec_d = int(item.get('recorrencia_dias', 0))
+                            if tit:
+                                proj_id = proj_map.get(proj_in.lower(), 1)
+                                if proj_in and proj_in.lower() not in proj_map:
+                                    cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
+                                                (uid, proj_in, proj_in[:6].upper(), tipo))
+                                    proj_id = cur.lastrowid
+                                    proj_map[proj_in.lower()] = proj_id
+
+                                if tipo == 'Pessoal':
+                                    cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
+                                    last = cur.fetchone()
+                                    last_val = str(last['codigo'] if (last and 'codigo' in last.keys()) else (last[0] if last else ''))
+                                    last_num = int(re.sub(r'\D', '', last_val) or 0)
+                                    cod = f"#P{last_num + 1:02d}"
+                                else:
+                                    cur.execute("SELECT codigo FROM tb_tarefas WHERE id_usuario = ? AND codigo NOT LIKE '#P%' ORDER BY id DESC LIMIT 1;", (uid,))
+                                    last = cur.fetchone()
+                                    last_val = str(last['codigo'] if (last and 'codigo' in last.keys()) else (last[0] if last else ''))
+                                    last_num = int(re.sub(r'\D', '', last_val) or 0)
+                                    cod = f"#{last_num + 1:03d}"
+
                                 cur.execute("""
                                 INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, ultima_atualizacao)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                                """, (uid, cod, proj_id, tit, tipo, prio, st, obs, rec_d, act_ts))
+                                VALUES (?, ?, ?, ?, ?, ?, 'Não iniciada', ?, ?, ?);
+                                """, (uid, cod, proj_id, tit, tipo, prio, obs, rec_d, act_ts))
                                 applied += 1
+                        elif action == 'editar':
+                            cod = item.get('codigo', '').strip()
+                            tit = item.get('titulo', '').strip()
+                            proj_in = str(item.get('projeto', '') or item.get('projeto_id', '')).strip()
+                            tipo = item.get('tipo', 'Profissional').strip()
+                            prio = item.get('prioridade', 'Alta').strip()
+                            st = item.get('status', 'Não iniciada').strip()
+                            obs = item.get('observacoes', '').strip()
+                            rec_d = int(item.get('recorrencia_dias', 0))
+                            if cod and tit:
+                                proj_id = proj_map.get(proj_in.lower(), 1)
+                                if proj_in and proj_in.lower() not in proj_map:
+                                    cur.execute("INSERT INTO tb_projetos (id_usuario, nome, sigla, tipo) VALUES (?, ?, ?, ?);",
+                                                (uid, proj_in, proj_in[:6].upper(), tipo))
+                                    proj_id = cur.lastrowid
+                                    proj_map[proj_in.lower()] = proj_id
+
+                                cur.execute("SELECT id, ultima_atualizacao FROM tb_tarefas WHERE id_usuario = ? AND codigo = ?;", (uid, cod))
+                                row = cur.fetchone()
+                                if row:
+                                    cloud_ts = (row['ultima_atualizacao'] or '').strip()
+                                    if act_ts >= cloud_ts or not cloud_ts:
+                                        cur.execute("""
+                                        UPDATE tb_tarefas 
+                                        SET titulo = ?, id_projeto = ?, tipo = ?, prioridade = ?, status = ?,
+                                            observacoes = ?, recorrencia_dias = ?, ultima_atualizacao = ?
+                                        WHERE id = ?;
+                                        """, (tit, proj_id, tipo, prio, st, obs, rec_d, act_ts, row['id']))
+                                        applied += 1
+                                else:
+                                    cur.execute("""
+                                    INSERT INTO tb_tarefas (id_usuario, codigo, id_projeto, titulo, tipo, prioridade, status, observacoes, recorrencia_dias, ultima_atualizacao)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                                    """, (uid, cod, proj_id, tit, tipo, prio, st, obs, rec_d, act_ts))
+                                    applied += 1
+                    except Exception as item_err:
+                        print(f"Erro ao processar item do sync {item}: {item_err}")
 
                 conn.commit()
 
