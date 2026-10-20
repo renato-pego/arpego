@@ -1,5 +1,5 @@
 {
-  "exportado_em": "2026-10-16 13:22:01",
+  "exportado_em": "2026-10-20 17:28:26",
   "total_tarefas": 28,
   "projetos": [
     {
@@ -339,12 +339,12 @@
       "titulo": "Fazer Duolingo",
       "tipo": "Pessoal",
       "prioridade": "Média",
-      "status": "Pendente",
+      "status": "Concluída",
       "observacoes": "Ofensiva diária mantida hoje",
-      "data_conclusao": null,
+      "data_conclusao": "2026-10-20 17:28:26",
       "recorrencia_dias": 1,
-      "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-13 16:54:23"
+      "data_recorrencia": "2026-10-21T04:00:00",
+      "ultima_atualizacao": "2026-10-20 17:28:26"
     },
     {
       "codigo": "#P02",
@@ -353,12 +353,12 @@
       "titulo": "Caminhada, calistênica",
       "tipo": "Pessoal",
       "prioridade": "Alta",
-      "status": "Pendente",
+      "status": "Concluída",
       "observacoes": "Separar 30 a 45 min para atividade física",
-      "data_conclusao": null,
+      "data_conclusao": "2026-10-20 17:28:26",
       "recorrencia_dias": 1,
-      "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-13 16:54:23"
+      "data_recorrencia": "2026-10-21T04:00:00",
+      "ultima_atualizacao": "2026-10-20 17:28:26"
     },
     {
       "codigo": "#021",
