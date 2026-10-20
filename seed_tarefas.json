@@ -1,5 +1,5 @@
 {
-  "exportado_em": "2026-10-20 17:28:26",
+  "exportado_em": "2026-10-20 17:36:26",
   "total_tarefas": 28,
   "projetos": [
     {
@@ -297,12 +297,12 @@
       "titulo": "Atualizar produção",
       "tipo": "Profissional",
       "prioridade": "Alta",
-      "status": "Em andamento",
+      "status": "Aguardando retorno",
       "observacoes": "Alinhar deploy em produção",
       "data_conclusao": null,
       "recorrencia_dias": 0,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-13 16:54:23"
+      "ultima_atualizacao": "2026-10-20 17:36:26"
     },
     {
       "codigo": "#019",
@@ -325,12 +325,12 @@
       "titulo": "Corrigir eliminação de Invoice",
       "tipo": "Profissional",
       "prioridade": "Alta",
-      "status": "Em andamento",
+      "status": "Em testes",
       "observacoes": "Debugar rotina de exclusão",
       "data_conclusao": null,
       "recorrencia_dias": 0,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-13 16:54:23"
+      "ultima_atualizacao": "2026-10-20 17:36:26"
     },
     {
       "codigo": "#P01",
