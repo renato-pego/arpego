@@ -1,5 +1,5 @@
 {
-  "exportado_em": "2026-10-21 16:43:51",
+  "exportado_em": "2026-10-21 17:06:19",
   "total_tarefas": 29,
   "projetos": [
     {
@@ -93,12 +93,12 @@
       "titulo": "Ajustar cálculo da Condition ZS (E-mail validado)",
       "tipo": "Profissional",
       "prioridade": "Média",
-      "status": "Em andamento",
-      "observacoes": "Disparo de e-mail validado pelos usuários em QAS. Nova solicitação em andamento: refazer a regra de cálculo da condition ZS.",
+      "status": "Em testes",
+      "observacoes": "Recálculo da Condition ZS finalizado com sucesso. Liberado para validação e testes dos usuários em QAS.",
       "data_conclusao": null,
       "recorrencia_dias": 0,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-21 16:43:51"
+      "ultima_atualizacao": "2026-10-21 17:06:19"
     },
     {
       "codigo": "#004",
