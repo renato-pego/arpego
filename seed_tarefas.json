@@ -1,5 +1,5 @@
 {
-  "exportado_em": "2026-10-21 10:05:39",
+  "exportado_em": "2026-10-21 10:49:53",
   "total_tarefas": 29,
   "projetos": [
     {
@@ -48,6 +48,12 @@
       "id": 8,
       "nome": "Carro",
       "sigla": "CARRO",
+      "tipo": "Profissional"
+    },
+    {
+      "id": 9,
+      "nome": "Boa",
+      "sigla": "BOA",
       "tipo": "Profissional"
     }
   ],
@@ -446,7 +452,7 @@
     },
     {
       "codigo": "#024",
-      "projeto": "IFF Argentina",
+      "projeto": "Boa",
       "id_projeto": 3,
       "titulo": "Criação do Follow UP sem EIC - Novo módulo de importação",
       "tipo": "Profissional",
@@ -456,7 +462,7 @@
       "recorrencia_dias": 0,
       "data_conclusao": null,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-21 10:05:39"
+      "ultima_atualizacao": "2026-10-21 10:49:53"
     }
   ]
 }
