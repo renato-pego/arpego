@@ -1,5 +1,5 @@
 {
-  "exportado_em": "2026-10-21 10:49:53",
+  "exportado_em": "2026-10-21 14:03:17",
   "total_tarefas": 29,
   "projetos": [
     {
@@ -93,12 +93,12 @@
       "titulo": "Ativar e-mail sobre mudança de data de chegada (Condition ZS)",
       "tipo": "Profissional",
       "prioridade": "Média",
-      "status": "Em andamento",
-      "observacoes": "Usuários reportaram que o e-mail não disparou. Investigar determinação de mensagens / gatilho na alteração da data (Condition ZS).",
+      "status": "Em testes",
+      "observacoes": "Ajustes realizados. Liberada para testes e homologação pelos usuários em QAS.",
       "data_conclusao": null,
       "recorrencia_dias": 0,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-21 09:40:05"
+      "ultima_atualizacao": "2026-10-21 14:03:17"
     },
     {
       "codigo": "#004",
@@ -462,7 +462,7 @@
       "recorrencia_dias": 0,
       "data_conclusao": null,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-21 10:49:53"
+      "ultima_atualizacao": "2026-10-21 14:03:17"
     }
   ]
 }
