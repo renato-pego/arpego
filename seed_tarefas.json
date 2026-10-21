@@ -1,5 +1,5 @@
 {
-  "exportado_em": "2026-10-20 17:36:26",
+  "exportado_em": "2026-10-21 09:40:05",
   "total_tarefas": 28,
   "projetos": [
     {
@@ -84,21 +84,21 @@
       "codigo": "#003",
       "id_projeto": 3,
       "projeto": "IFF Argentina",
-      "titulo": "Ativar e-mail sobre mudança de data de chegada (ZS)",
+      "titulo": "Ativar e-mail sobre mudança de data de chegada (Condition ZS)",
       "tipo": "Profissional",
       "prioridade": "Média",
-      "status": "Em testes",
-      "observacoes": "Liberada para testes em QAS",
+      "status": "Em andamento",
+      "observacoes": "Usuários reportaram que o e-mail não disparou. Investigar determinação de mensagens / gatilho na alteração da data (Condition ZS).",
       "data_conclusao": null,
       "recorrencia_dias": 0,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-13 16:54:23"
+      "ultima_atualizacao": "2026-10-21 09:40:05"
     },
     {
       "codigo": "#004",
       "id_projeto": 4,
       "projeto": "IFF Brasil / México",
-      "titulo": "Colocar código e descrição do Material no e-mail de aviso (ZS)",
+      "titulo": "Colocar código e descrição do Material no e-mail de aviso (Condition ZS)",
       "tipo": "Profissional",
       "prioridade": "Média",
       "status": "Em testes",
@@ -106,7 +106,7 @@
       "data_conclusao": null,
       "recorrencia_dias": 0,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-13 16:54:23"
+      "ultima_atualizacao": "2026-10-21 09:40:05"
     },
     {
       "codigo": "#005",
@@ -339,12 +339,12 @@
       "titulo": "Fazer Duolingo",
       "tipo": "Pessoal",
       "prioridade": "Média",
-      "status": "Concluída",
+      "status": "Pendente",
       "observacoes": "Ofensiva diária mantida hoje",
-      "data_conclusao": "2026-10-20 17:28:26",
+      "data_conclusao": null,
       "recorrencia_dias": 1,
-      "data_recorrencia": "2026-10-21T04:00:00",
-      "ultima_atualizacao": "2026-10-20 17:28:26"
+      "data_recorrencia": null,
+      "ultima_atualizacao": "2026-10-21 09:40:05"
     },
     {
       "codigo": "#P02",
@@ -353,12 +353,12 @@
       "titulo": "Caminhada, calistênica",
       "tipo": "Pessoal",
       "prioridade": "Alta",
-      "status": "Concluída",
+      "status": "Pendente",
       "observacoes": "Separar 30 a 45 min para atividade física",
-      "data_conclusao": "2026-10-20 17:28:26",
+      "data_conclusao": null,
       "recorrencia_dias": 1,
-      "data_recorrencia": "2026-10-21T04:00:00",
-      "ultima_atualizacao": "2026-10-20 17:28:26"
+      "data_recorrencia": null,
+      "ultima_atualizacao": "2026-10-21 09:40:05"
     },
     {
       "codigo": "#021",
