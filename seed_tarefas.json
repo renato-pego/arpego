@@ -1,5 +1,5 @@
 {
-  "exportado_em": "2026-10-21 14:03:17",
+  "exportado_em": "2026-10-21 16:43:51",
   "total_tarefas": 29,
   "projetos": [
     {
@@ -90,15 +90,15 @@
       "codigo": "#003",
       "id_projeto": 3,
       "projeto": "IFF Argentina",
-      "titulo": "Ativar e-mail sobre mudança de data de chegada (Condition ZS)",
+      "titulo": "Ajustar cálculo da Condition ZS (E-mail validado)",
       "tipo": "Profissional",
       "prioridade": "Média",
-      "status": "Em testes",
-      "observacoes": "Ajustes realizados. Liberada para testes e homologação pelos usuários em QAS.",
+      "status": "Em andamento",
+      "observacoes": "Disparo de e-mail validado pelos usuários em QAS. Nova solicitação em andamento: refazer a regra de cálculo da condition ZS.",
       "data_conclusao": null,
       "recorrencia_dias": 0,
       "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-21 14:03:17"
+      "ultima_atualizacao": "2026-10-21 16:43:51"
     },
     {
       "codigo": "#004",
