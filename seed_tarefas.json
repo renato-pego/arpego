@@ -1,6 +1,6 @@
 {
-  "exportado_em": "2026-10-21 17:06:19",
-  "total_tarefas": 29,
+  "exportado_em": "2026-10-22 08:04:50",
+  "total_tarefas": 31,
   "projetos": [
     {
       "id": 1,
@@ -345,12 +345,12 @@
       "titulo": "Fazer Duolingo",
       "tipo": "Pessoal",
       "prioridade": "Média",
-      "status": "Pendente",
+      "status": "Concluída",
       "observacoes": "Ofensiva diária mantida hoje",
-      "data_conclusao": null,
+      "data_conclusao": "2026-10-22 08:04:50",
       "recorrencia_dias": 1,
-      "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-21 09:40:05"
+      "data_recorrencia": "2026-10-23T04:00:00",
+      "ultima_atualizacao": "2026-10-22 08:04:50"
     },
     {
       "codigo": "#P02",
@@ -359,12 +359,12 @@
       "titulo": "Caminhada, calistênica",
       "tipo": "Pessoal",
       "prioridade": "Alta",
-      "status": "Pendente",
+      "status": "Concluída",
       "observacoes": "Separar 30 a 45 min para atividade física",
-      "data_conclusao": null,
+      "data_conclusao": "2026-10-22 08:04:50",
       "recorrencia_dias": 1,
-      "data_recorrencia": null,
-      "ultima_atualizacao": "2026-10-21 09:40:05"
+      "data_recorrencia": "2026-10-23T04:00:00",
+      "ultima_atualizacao": "2026-10-22 08:04:50"
     },
     {
       "codigo": "#021",
@@ -463,6 +463,34 @@
       "data_conclusao": null,
       "data_recorrencia": null,
       "ultima_atualizacao": "2026-10-21 14:03:17"
+    },
+    {
+      "codigo": "#025",
+      "projeto": "IFF Brasil / México",
+      "id_projeto": 4,
+      "titulo": "Refatorar ABAP interface de pedido",
+      "tipo": "Profissional",
+      "prioridade": "Alta",
+      "status": "Em andamento",
+      "observacoes": "Apareceu um erro na interface de pedido. Refatorar e debugar rotina ABAP.",
+      "recorrencia_dias": 0,
+      "data_conclusao": null,
+      "data_recorrencia": null,
+      "ultima_atualizacao": "2026-10-22 08:04:50"
+    },
+    {
+      "codigo": "#026",
+      "projeto": "IFF Brasil / México",
+      "id_projeto": 4,
+      "titulo": "Erro na carga do TXT da Krom",
+      "tipo": "Profissional",
+      "prioridade": "Alta",
+      "status": "Em andamento",
+      "observacoes": "Investigar e corrigir erro na carga do TXT da despachante Krom.",
+      "recorrencia_dias": 0,
+      "data_conclusao": null,
+      "data_recorrencia": null,
+      "ultima_atualizacao": "2026-10-22 08:04:50"
     }
   ]
 }
