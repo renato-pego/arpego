@@ -164,8 +164,8 @@ flowchart TD
 | **#007** | IFF México | Validar lançamentos contábeis com Joel | Alta | Aguardando | Alinhamento com Joel. |
 | **#010** | IFF Brasil/México | Carregar tabela de vias de Transporte | Média | Aguardando dados | Aguardando planilha. |
 | **#011** | IFF Brasil/México | Buscar DOC CFIN com erro | Alta | Aguardando retorno | Detalhes com usuários. |
-| **#003** | IFF Argentina | Ativar e-mail de data de chegada (ZS) | Média | 🟢 Em testes | Em validação em QAS. Refazer cálculo conforme nova solicitação. |
-| **#004** | IFF Brasil/México | Código e descrição do Material no e-mail (ZS) | Média | 🟢 Em testes | Aguardando usuários. |
+| **#003** | IFF Argentina | Ativar e-mail de data de chegada (ZS) | Média | ✅ Concluída | Validada em produção! E-mail disparado com sucesso (Processo A015300020115). |
+| **#004** | IFF Brasil/México | Código e descrição do Material no e-mail (ZS) | Média | ✅ Concluída | Validada em produção! Código e descrição exibidos no e-mail do ZS. |
 | **#015** | Unimed | Correção da interface de fornecedores com MV | Alta | 🟢 Em testes | Aguardando testes MV. |
 | **#016** | Unimed | Interface de NF com 2 pedidos | Alta | 🟢 Em testes | Validação de múltiplos pedidos. |
 | **#017** | Eurofarma | Aplicar melhorias da Caldic | Média | Aguardando Caldic | Replicar após estabilização. |
