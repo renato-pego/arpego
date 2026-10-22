@@ -126,6 +126,12 @@ flowchart TD
   - 🔴 **Crítico:** Mensagem sem resposta há mais de 8 horas (destaque em banner no topo do painel de tarefas).
 - **Varredura Contínua:** Thread silenciosa em segundo plano executada a cada 10 minutos no `app_windows.py`.
 
+### 3.8. Governança de Apontamentos de Horas (IADBMNG & PSOffice)
+- **Papel de Governança (Sem fusão de apps):** O Assistente Pessoal atua como **Auditor e Gerente Ativo de Apontamentos**, monitorando o banco `IADBMNG` (`localhost` MSSQL / SQLite) sem interferir no app `c:\IADBMNG`.
+- **Cobrança Ativa de Horas Diárias:** Monitora a meta diária (8.0h por dia útil). Se o usuário não tiver apontado o dia de hoje ou dias anteriores, emite alertas e sugestões imediatas.
+- **Sugestão de Lançamentos Baseada nas Tarefas:** Relaciona as frentes executadas no dia (ex: `#024` Boa, `#025` IFF, `#026` IFF) e propõe o rateio e descritivo exato para preenchimento ágil.
+- **Auditoria de PSOffice:** Sinaliza lançamentos com status `sem_tarefa` ou `nao_lancado` para evitar retrabalho no fechamento mensal.
+
 ---
 
 ## 📊 4. Estrutura de Dados e Esquema de Tabelas
@@ -142,7 +148,6 @@ flowchart TD
 - **`tb_sugestoes_tarefas`:** `id`, `email_entry_id`, `titulo`, `projeto`, `prioridade`, `tipo`, `resumo`, `status`, `data_criacao`.
 - **`tb_credenciais`:** `id`, `categoria`, `titulo`, `usuario`, `senha_cifrada`, `iv`, `salt`, `observacoes`.
 - **`tb_historico`:** `id`, `codigo_tarefa`, `descricao`, `data_hora`.
-- **`tb_credenciais`:** `id`, `categoria`, `titulo`, `usuario`, `senha_cifrada`, `iv`, `salt`, `observacoes`.
 - **`tb_historico`:** `id`, `codigo_tarefa`, `descricao`, `data_hora`.
 
 ---

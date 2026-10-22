@@ -249,6 +249,20 @@
       </div>
     </div>
 
+    <!-- Card de Apontamento de Horas (IADBMNG / PSOffice) -->
+    <div id="apontamento-banner" style="background:#0f172a; border:1px solid #334155; border-left:4px solid #38bdf8; border-radius:10px; padding:10px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.3rem;">⏱️</span>
+        <div>
+          <div style="font-size:0.85rem; font-weight:700; color:#fff;" id="apontamento-title">Horas de Hoje: <span id="apontamento-horas" style="color:#facc15;">0.0h / 8.0h</span></div>
+          <div style="font-size:0.75rem; color:#94a3b8;" id="apontamento-sub">IADBMNG / PSOffice • Foco ativo: Boa (#024) e IFF (#025, #026).</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="apontamento-badge" style="background:#854d0e30; color:#facc15; border:1px solid #eab308; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:6px;">Pendente</span>
+      </div>
+    </div>
+
     <section class="metrics">
       <div class="metric-card">
         <div class="metric-num" id="metric-pendentes">--</div>
@@ -1570,11 +1584,54 @@
       } catch (e) {}
     }
 
+    // ==================== GOVERNANÇA DE APONTAMENTOS (IADBMNG) ====================
+    async function checkApontamentosStatus() {
+      try {
+        const res = await fetch('/api/apontamentos');
+        const d = await res.json();
+        if (d.status !== 'ok') return;
+
+        const horasEl = document.getElementById('apontamento-horas');
+        const badgeEl = document.getElementById('apontamento-badge');
+        const subEl = document.getElementById('apontamento-sub');
+        const bannerEl = document.getElementById('apontamento-banner');
+
+        if (horasEl) {
+          horasEl.innerText = `${d.horas_hoje}h / 8.0h`;
+          if (d.meta_atingida) {
+            horasEl.style.color = '#4ade80';
+            if (badgeEl) {
+              badgeEl.innerText = '✅ 8.0h Fechadas';
+              badgeEl.style.background = '#065f4630';
+              badgeEl.style.color = '#4ade80';
+              badgeEl.style.borderColor = '#22c55e';
+            }
+            if (bannerEl) bannerEl.style.borderLeftColor = '#22c55e';
+          } else {
+            horasEl.style.color = '#facc15';
+            if (badgeEl) {
+              badgeEl.innerText = `${(8.0 - d.horas_hoje).toFixed(1)}h Faltando`;
+              badgeEl.style.background = '#854d0e30';
+              badgeEl.style.color = '#facc15';
+              badgeEl.style.borderColor = '#eab308';
+            }
+            if (bannerEl) bannerEl.style.borderLeftColor = '#facc15';
+          }
+        }
+
+        if (subEl && d.dias_pendentes && d.dias_pendentes.length > 0) {
+          subEl.innerHTML = `⚠️ <b>Atenção:</b> ${d.dias_pendentes.length} dia(s) anterior(es) incompleto(s) no IADBMNG. Sugestão: apontar Boa (#024) e IFF (#025, #026).`;
+        }
+      } catch (e) {}
+    }
+
       await loadTasks();
       await loadProjetos();
       await checkEmailAlerts();
+      await checkApontamentosStatus();
       setInterval(updateConnectionStatusBadge, 15000);
       setInterval(checkEmailAlerts, 30000);
+      setInterval(checkApontamentosStatus, 60000);
     });
   </script>
 </body>

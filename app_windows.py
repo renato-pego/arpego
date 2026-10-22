@@ -755,6 +755,16 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json([], 500)
             return
 
+        # Governança de Apontamentos de Horas (IADBMNG / PSOffice)
+        if clean_path == '/api/apontamentos':
+            try:
+                import apontamentos_manager
+                res = apontamentos_manager.obter_status_apontamentos()
+                self._send_json(res)
+            except Exception as e:
+                self._send_json({"status": "erro", "error": str(e)}, 500)
+            return
+
         # Modos Locais (Base Forte e Sincronizado): Lê do banco local
         if clean_path == '/api/tarefas':
             conn = get_db_connection()
