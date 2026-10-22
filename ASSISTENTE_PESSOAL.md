@@ -6,9 +6,10 @@ Documento vivo de alinhamento com todas as decisões arquiteturais, preferência
 
 ## 🧭 1. Diretrizes Operacionais e Preferências do Usuário
 
-1. **Papel do Assistente (Governança & Gestão):**
-   - Atuar como copiloto ágil de produtividade: organizar pendências, monitorar prazos, alertar sobre bloqueios/dependências e estruturar a rotina pessoal e profissional.
-   - A execução técnica nos ambientes de trabalho (SAP/Protheus) é do usuário; o agente cuida da arquitetura, do código do assistente e do planejamento.
+1. **Papel do Assistente (Gerente Pessoal de Tarefas & Produtividade):**
+   - Atuar estritamente como **Gerente Pessoal de Tarefas**, com foco absoluto em manter o usuário ativo, focado e altamente produtivo.
+   - Monitorar prazos, alertar sobre bloqueios, cobrar retornos, organizar pendências e não deixar nenhuma peteca cair.
+   - **NÃO analisar código-fonte de sistemas corporativos (ABAP/queries/etc.)**, exceto se o usuário pedir expressamente. A execução técnica pertence ao usuário; a IA gerencia a esteira de entregas e mantém as bases 100% sincronizadas.
 2. **Restrição Estrita de Ferramentas (ZERO Terminal):**
    - **NUNCA executar comandos de terminal (`run_command`):** Evita popups invasivos de autorização e atrito na IDE. Todas as inspeções e modificações de código devem ser feitas estritamente via ferramentas de leitura e edição de arquivos.
 3. **Fluxo de Deploy (GitHub -> Render):**
@@ -115,6 +116,16 @@ flowchart TD
 - **Consumo Dinâmico no Celular (Zero Hardcode):** O celular e a aplicação web não possuem telas de manutenção de domínio, mantendo o app focado em produtividade e sem poluição visual.
 - **Single Source of Truth:** O celular consome a lista oficial via `/api/dominios` e sincronização `/api/sync`, armazenando no cache local para funcionamento offline (0ms). Todos os componentes (bordas dos cards, seletores suspensos, tags de prioridade, filtros e guia visual) são renderizados dinamicamente a partir dos objetos `STATUS_CONFIG` e `PRIORITY_CONFIG`.
 
+### 3.7. Radar de E-mails & SLA de Resposta (Outlook MAPI Desktop)
+- **Integração COM MAPI Nativa:** Lê em tempo real as Caixas de Entrada de todas as contas ativas no Microsoft Outlook Desktop (`renato.l.pego@outlook.com`, `gmail.com`, `soenergy.com`, `boadigital.com.br`) sem necessidade de senhas ou chaves externas.
+- **Vínculo Automático com Tarefas:** Correlaciona palavras-chave e clientes (*Boa*, *IFF*, *Krom*, *Follow Up*, *Caldic*, *Unimed*, etc.) e grava notas automáticas no histórico (`tb_historico`).
+- **Detecção de Novas Demandas:** Identifica solicitações de chamados ou erros reportados e alimenta a fila de sugestões para aprovação com 1 clique.
+- **Cálculo de SLA Anti-Esquecimento:**
+  - 🟡 **Atenção:** Mensagem sem resposta há mais de 2 horas.
+  - 🟠 **Alerta:** Mensagem sem resposta há mais de 4 horas.
+  - 🔴 **Crítico:** Mensagem sem resposta há mais de 8 horas (destaque em banner no topo do painel de tarefas).
+- **Varredura Contínua:** Thread silenciosa em segundo plano executada a cada 10 minutos no `app_windows.py`.
+
 ---
 
 ## 📊 4. Estrutura de Dados e Esquema de Tabelas
@@ -127,6 +138,10 @@ flowchart TD
   - `recorrencia_dias` (0 = avulsa, 1 = diária, etc.)
   - `data_conclusao` (TIMESTAMP BRT)
   - `data_recorrencia` (TIMESTAMP BRT de reinício às 04:00)
+- **`tb_emails_monitorados`:** `id`, `entry_id`, `conta`, `remetente`, `remetente_email`, `assunto`, `data_recebimento`, `codigo_tarefa_vinculada`, `status_processamento`, `precisa_resposta`, `respondido`, `horas_sem_resposta`, `sla_status`, `corpo_resumo`, `data_processamento`.
+- **`tb_sugestoes_tarefas`:** `id`, `email_entry_id`, `titulo`, `projeto`, `prioridade`, `tipo`, `resumo`, `status`, `data_criacao`.
+- **`tb_credenciais`:** `id`, `categoria`, `titulo`, `usuario`, `senha_cifrada`, `iv`, `salt`, `observacoes`.
+- **`tb_historico`:** `id`, `codigo_tarefa`, `descricao`, `data_hora`.
 - **`tb_credenciais`:** `id`, `categoria`, `titulo`, `usuario`, `senha_cifrada`, `iv`, `salt`, `observacoes`.
 - **`tb_historico`:** `id`, `codigo_tarefa`, `descricao`, `data_hora`.
 
@@ -136,14 +151,18 @@ flowchart TD
 
 | ID | Frente / Cliente | Tarefa | Prioridade | Status | Observações |
 |:---:|:---|:---|:---:|:---:|:---|
+| **#024** | Boa | Criação do Follow UP sem EIC | Alta | 🔵 Em andamento | Criar novo módulo de importação. Indo muito bem. |
+| **#025** | IFF Brasil / México | Refatorar ABAP interface de pedido | Alta | 🔵 Em andamento | Apareceu um erro na interface de pedido. Refatorar e debugar rotina. |
+| **#026** | IFF Brasil / México | Erro na carga do TXT da Krom | Alta | 🔵 Em andamento | Investigar e corrigir erro na carga do TXT da despachante Krom. |
 | **#018** | Caldic | Atualizar produção | Alta | 🔵 Em andamento | Deploy em produção. |
+| **#022** | Caldic | Refatorar integração de pedidos | Alta | Não iniciada | Campo posição não foi preenchido na integração. |
 | **#007** | IFF México | Validar lançamentos contábeis com Joel | Alta | Aguardando | Alinhamento com Joel. |
 | **#010** | IFF Brasil/México | Carregar tabela de vias de Transporte | Média | Aguardando dados | Aguardando planilha. |
 | **#011** | IFF Brasil/México | Buscar DOC CFIN com erro | Alta | Aguardando retorno | Detalhes com usuários. |
-| **#003** | IFF Argentina | Ativar e-mail de data de chegada (ZS) | Média | 🟢 Em testes | Em validação em QAS. |
+| **#003** | IFF Argentina | Ativar e-mail de data de chegada (ZS) | Média | 🟢 Em testes | Em validação em QAS. Refazer cálculo conforme nova solicitação. |
 | **#004** | IFF Brasil/México | Código e descrição do Material no e-mail (ZS) | Média | 🟢 Em testes | Aguardando usuários. |
 | **#015** | Unimed | Correção da interface de fornecedores com MV | Alta | 🟢 Em testes | Aguardando testes MV. |
 | **#016** | Unimed | Interface de NF com 2 pedidos | Alta | 🟢 Em testes | Validação de múltiplos pedidos. |
 | **#017** | Eurofarma | Aplicar melhorias da Caldic | Média | Aguardando Caldic | Replicar após estabilização. |
-| **#P01** | Pessoal | Fazer Duolingo | Média | 🔄 Diária (04h) | Ofensiva diária. |
-| **#P02** | Pessoal | Caminhada, calistênica | Alta | 🔄 Diária (04h) | Atividade física. |
+| **#P01** | Pessoal | Fazer Duolingo | Média | 🔄 Diária (04h) | Concluída hoje. Próximo ciclo: 23/10 04:00. |
+| **#P02** | Pessoal | Caminhada, calistênica | Alta | 🔄 Diária (04h) | Concluída hoje. Próximo ciclo: 23/10 04:00. |

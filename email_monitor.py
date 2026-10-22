@@ -257,7 +257,7 @@ def conectar_outlook():
         print(f"⚠️ Não foi possível conectar ao Outlook Application: {e}")
         return None, None
 
-def escanear_caixas_outlook(horas_atras=72, limite_por_pasta=60):
+def escanear_caixas_outlook(horas_atras=360, limite_por_pasta=1000):
     """
     Varre as Caixas de Entrada de todas as contas configuradas no Outlook.
     Retorna uma lista de e-mails normalizados.
@@ -270,7 +270,7 @@ def escanear_caixas_outlook(horas_atras=72, limite_por_pasta=60):
     limite_data = now_br - timedelta(hours=horas_atras)
     emails_encontrados = []
 
-    print(f"\n🔍 Iniciando varredura das contas no Outlook (Últimas {horas_atras}h)...")
+    print(f"\n🔍 Iniciando varredura das contas no Outlook (Últimos {horas_atras // 24} dias / {horas_atras}h)...")
 
     try:
         # Itera por todas as Stores (Contas de e-mail / Arquivos de dados)
@@ -379,13 +379,13 @@ def escanear_caixas_outlook(horas_atras=72, limite_por_pasta=60):
 
 # ==================== PROCESSAMENTO E INTELIGÊNCIA ====================
 
-def processar_emails(horas_atras=72):
+def processar_emails(horas_atras=360, limite_por_pasta=1000):
     """
     Executa a leitura, classificação, vinculação e cálculo de SLA dos e-mails.
     Grava os resultados no banco de dados e aponta no histórico das tarefas.
     """
     init_email_tables()
-    mensagens = escanear_caixas_outlook(horas_atras=horas_atras)
+    mensagens = escanear_caixas_outlook(horas_atras=horas_atras, limite_por_pasta=limite_por_pasta)
     if not mensagens:
         print("ℹ️ Nenhuma mensagem nova para processar ou Outlook não estava disponível.")
         return {"total": 0, "vinculados": 0, "sugestoes": 0, "sla_atencao": 0}
@@ -724,5 +724,5 @@ def descartar_sugestao(sugestao_id):
     return True
 
 if __name__ == '__main__':
-    print("🚀 Teste do Módulo de Monitoramento de E-mails ARPego")
-    processar_emails(horas_atras=72)
+    print("🚀 Varredura Ampliada de E-mails ARPego (Últimos 15 dias / 360h)")
+    processar_emails(horas_atras=360, limite_por_pasta=1000)

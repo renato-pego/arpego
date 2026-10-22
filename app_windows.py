@@ -1016,7 +1016,7 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
             try:
                 import email_monitor
-                horas = int(data.get('horas', 72)) if isinstance(data, dict) else 72
+                horas = int(data.get('horas', 360)) if isinstance(data, dict) else 360
                 rel = email_monitor.processar_emails(horas_atras=horas)
                 self._send_json({"success": True, "relatorio": rel})
             except Exception as e:
@@ -1197,8 +1197,8 @@ def start_desktop_gui():
         while True:
             try:
                 import email_monitor
-                log_event("[EMAIL-SCAN] Executando varredura periódica de e-mails no Outlook...")
-                email_monitor.processar_emails(horas_atras=48)
+                log_event("[EMAIL-SCAN] Executando varredura periódica de e-mails no Outlook (15 dias)...")
+                email_monitor.processar_emails(horas_atras=360, limite_por_pasta=1000)
             except Exception as err_scan:
                 log_event(f"[EMAIL-SCAN] Aviso no monitor em background: {err_scan}")
             time.sleep(600)
