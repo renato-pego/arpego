@@ -736,6 +736,25 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
                         self._send_json({"error": str(e)}, 500)
                     return
 
+        # Monitoramento de E-mails e SLA (Outlook Desktop)
+        if clean_path == '/api/emails':
+            try:
+                import email_monitor
+                res = email_monitor.obter_dados_emails_painel()
+                self._send_json(res)
+            except Exception as e:
+                self._send_json({"emails": [], "error": str(e), "metricas": {"total": 0, "critico": 0, "alerta": 0, "atencao": 0, "vinculados": 0}})
+            return
+
+        if clean_path == '/api/emails/sugestoes':
+            try:
+                import email_monitor
+                res = email_monitor.obter_sugestoes_pendentes()
+                self._send_json(res)
+            except Exception as e:
+                self._send_json([], 500)
+            return
+
         # Modos Locais (Base Forte e Sincronizado): Lê do banco local
         if clean_path == '/api/tarefas':
             conn = get_db_connection()
@@ -993,6 +1012,39 @@ class DesktopRequestHandler(http.server.SimpleHTTPRequestHandler):
                 APP_RUNTIME_STATE["ultima_sync"] = get_now_br().strftime('%H:%M:%S')
             self._send_json({"success": success, "mensagem": msg})
 
+        elif clean_path == '/api/emails/scan':
+            conn.close()
+            try:
+                import email_monitor
+                horas = int(data.get('horas', 72)) if isinstance(data, dict) else 72
+                rel = email_monitor.processar_emails(horas_atras=horas)
+                self._send_json({"success": True, "relatorio": rel})
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, 500)
+
+        elif clean_path == '/api/emails/responder':
+            conn.close()
+            entry_id = data.get('entry_id') if isinstance(data, dict) else None
+            if not entry_id:
+                self._send_json({"error": "entry_id obrigatorio"}, 400)
+                return
+            try:
+                import email_monitor
+                email_monitor.marcar_email_respondido(entry_id)
+                self._send_json({"success": True, "entry_id": entry_id})
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, 500)
+
+        elif clean_path == '/api/emails/sugestoes/descartar':
+            conn.close()
+            sug_id = data.get('id') if isinstance(data, dict) else None
+            try:
+                import email_monitor
+                email_monitor.descartar_sugestao(sug_id)
+                self._send_json({"success": True, "id": sug_id})
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, 500)
+
         else:
             conn.close()
             self._send_json({"error": "Rota não encontrada"}, 404)
@@ -1138,6 +1190,21 @@ def start_desktop_gui():
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
     time.sleep(0.3)
+
+    # 2.1. Inicia monitoramento de e-mails do Outlook em background (a cada 10 min)
+    def background_email_scanner():
+        time.sleep(8)
+        while True:
+            try:
+                import email_monitor
+                log_event("[EMAIL-SCAN] Executando varredura periódica de e-mails no Outlook...")
+                email_monitor.processar_emails(horas_atras=48)
+            except Exception as err_scan:
+                log_event(f"[EMAIL-SCAN] Aviso no monitor em background: {err_scan}")
+            time.sleep(600)
+
+    t_email = threading.Thread(target=background_email_scanner, daemon=True)
+    t_email.start()
 
     # 3. Lança a Janela Gráfica Stand Alone
     url = f"http://127.0.0.1:{active_port}"

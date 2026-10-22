@@ -228,12 +228,27 @@
   <!-- Top Main Tabs -->
   <nav class="main-nav">
     <div class="main-tab active" id="tab-btn-tasks" onclick="switchMainTab('tasks')">📋 Tarefas</div>
+    <div class="main-tab" id="tab-btn-emails" onclick="switchMainTab('emails')">📬 E-mails & SLA <span id="badge-email-sla-count" style="display:none; background:#ef4444; color:#fff; font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:999px; margin-left:4px;">0</span></div>
     <div class="main-tab" id="tab-btn-domains" onclick="switchMainTab('domains')">⚙️ Gerenciar Domínios</div>
     <div class="main-tab" id="tab-btn-vault" onclick="switchMainTab('vault')">🔐 Cofre Seguro</div>
   </nav>
 
   <!-- ==================== SEÇÃO 1: TAREFAS ==================== -->
   <section id="section-tasks">
+    <!-- Banner de Alerta de SLA de E-mails -->
+    <div id="email-sla-banner" style="display:none; background:#ef444418; border:1px solid #ef444460; border-radius:10px; padding:10px 14px; margin-bottom:12px; cursor:pointer;" onclick="switchMainTab('emails')">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.3rem;">📬</span>
+          <div>
+            <div style="font-size:0.85rem; font-weight:700; color:#f87171;" id="email-sla-banner-text">Alerta de E-mails: 0 mensagens aguardando retorno</div>
+            <div style="font-size:0.75rem; color:#94a3b8;">Mensagens sem resposta com risco de atraso com clientes. Clique para ver.</div>
+          </div>
+        </div>
+        <button class="btn-icon" style="font-size:0.75rem; padding:4px 10px; background:#ef444440; border-color:#ef4444; color:#fff;">Ver Radar →</button>
+      </div>
+    </div>
+
     <section class="metrics">
       <div class="metric-card">
         <div class="metric-num" id="metric-pendentes">--</div>
@@ -348,6 +363,61 @@
         <button class="btn-icon" onclick="lockVault()">🔒 Bloquear Cofre</button>
       </div>
       <div id="credList"></div>
+    </div>
+  </section>
+
+  <!-- ==================== SEÇÃO 4: MONITOR DE E-MAILS & SLA ==================== -->
+  <section id="section-emails" style="display: none; padding-top: 4px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <h2 style="font-size: 1.15rem; font-weight: 800; color: #fff;">📬 Radar de E-mails & SLA de Resposta</h2>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          Monitoramento inteligente do Microsoft Outlook Desktop (4 contas ativas).
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="btn-scan-outlook" class="btn-sync" onclick="scanOutlookNow()">🔍 Varrer Outlook Agora</button>
+      </div>
+    </div>
+
+    <!-- Métricas de SLA -->
+    <section class="metrics">
+      <div class="metric-card">
+        <div class="metric-num" id="email-metric-critico" style="color: #ef4444;">0</div>
+        <div class="metric-label">Crítico (&gt;8h)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" id="email-metric-alerta" style="color: #f97316;">0</div>
+        <div class="metric-label">Alerta (&gt;4h)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" id="email-metric-atencao" style="color: #eab308;">0</div>
+        <div class="metric-label">Atenção (&gt;2h)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" id="email-metric-vinculados" style="color: var(--primary);">0</div>
+        <div class="metric-label">Vinculados</div>
+      </div>
+    </section>
+
+    <!-- Fila de Sugestões de Novas Tarefas -->
+    <div id="container-sugestoes" style="display: none; margin-bottom: 20px; background: #0369a120; border: 1px solid #0284c780; border-radius: 12px; padding: 14px;">
+      <div style="font-size: 0.9rem; font-weight: 800; color: #38bdf8; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+        <span>💡</span> Sugestões de Novas Demandas Detectadas
+      </div>
+      <div id="lista-sugestoes" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+
+    <!-- Filtros de Visualização -->
+    <div style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px;">
+      <button class="btn-clear-filters" id="btn-filtro-pend" style="background: #0284c7; color: #fff;" onclick="filterEmailsView('pendentes')">⏳ Aguardando Resposta</button>
+      <button class="btn-clear-filters" id="btn-filtro-vinc" onclick="filterEmailsView('vinculados')">🔗 Vinculados a Tarefas</button>
+      <button class="btn-clear-filters" id="btn-filtro-todos" onclick="filterEmailsView('todos')">📋 Todos</button>
+    </div>
+
+    <!-- Lista de E-mails Monitorados -->
+    <div id="lista-emails" style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="text-align: center; color: var(--text-muted); padding: 30px;">Carregando mensagens monitoradas...</div>
     </div>
   </section>
 
@@ -624,6 +694,8 @@
       document.getElementById('section-tasks').style.display = 'none';
       document.getElementById('section-domains').style.display = 'none';
       document.getElementById('section-vault').style.display = 'none';
+      const secEmails = document.getElementById('section-emails');
+      if (secEmails) secEmails.style.display = 'none';
 
       if (tab === 'tasks') {
         document.getElementById('tab-btn-tasks').classList.add('active');
@@ -632,6 +704,11 @@
         document.getElementById('tab-btn-domains').classList.add('active');
         document.getElementById('section-domains').style.display = 'block';
         renderDomainsManagementUI();
+      } else if (tab === 'emails') {
+        const btnEm = document.getElementById('tab-btn-emails');
+        if (btnEm) btnEm.classList.add('active');
+        if (secEmails) secEmails.style.display = 'block';
+        loadEmailsData();
       } else {
         document.getElementById('tab-btn-vault').classList.add('active');
         document.getElementById('section-vault').style.display = 'block';
@@ -1278,9 +1355,226 @@
 
       await updateConnectionStatusBadge();
       await loadDominios();
+
+    // ==================== MÓDULO DE E-MAILS & SLA ====================
+    let allEmailsData = [];
+    let currentEmailFilter = 'pendentes';
+
+    async function checkEmailAlerts() {
+      try {
+        const res = await fetch('/api/emails');
+        const data = await res.json();
+        const met = data.metricas || {};
+        const slaTotal = (met.critico || 0) + (met.alerta || 0) + (met.atencao || 0);
+
+        const badgeCount = document.getElementById('badge-email-sla-count');
+        if (badgeCount) {
+          if (slaTotal > 0) {
+            badgeCount.innerText = slaTotal;
+            badgeCount.style.display = 'inline-block';
+          } else {
+            badgeCount.style.display = 'none';
+          }
+        }
+
+        const banner = document.getElementById('email-sla-banner');
+        const bannerText = document.getElementById('email-sla-banner-text');
+        if (banner && bannerText) {
+          if ((met.critico || 0) > 0 || (met.alerta || 0) > 0) {
+            bannerText.innerText = `⚠️ Alerta de SLA: ${(met.critico || 0) + (met.alerta || 0)} e-mails aguardando seu retorno há mais de 4h!`;
+            banner.style.display = 'block';
+          } else if ((met.atencao || 0) > 0) {
+            bannerText.innerText = `📬 Radar: ${met.atencao} e-mail(s) aguardando retorno há mais de 2h.`;
+            banner.style.display = 'block';
+          } else {
+            banner.style.display = 'none';
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function loadEmailsData() {
+      const container = document.getElementById('lista-emails');
+      try {
+        const res = await fetch('/api/emails');
+        const data = await res.json();
+        allEmailsData = data.emails || [];
+        const met = data.metricas || {};
+
+        document.getElementById('email-metric-critico').innerText = met.critico || 0;
+        document.getElementById('email-metric-alerta').innerText = met.alerta || 0;
+        document.getElementById('email-metric-atencao').innerText = met.atencao || 0;
+        document.getElementById('email-metric-vinculados').innerText = met.vinculados || 0;
+
+        await loadSugestoesTarefas();
+        renderFilteredEmails();
+      } catch (e) {
+        if (container) container.innerHTML = `<div style="text-align:center; color:#ef4444; padding:20px;">Erro ao carregar e-mails: ${e.message}</div>`;
+      }
+    }
+
+    async function loadSugestoesTarefas() {
+      try {
+        const res = await fetch('/api/emails/sugestoes');
+        const sugestoes = await res.json();
+        const box = document.getElementById('container-sugestoes');
+        const list = document.getElementById('lista-sugestoes');
+        if (!box || !list) return;
+
+        if (sugestoes && sugestoes.length > 0) {
+          box.style.display = 'block';
+          list.innerHTML = sugestoes.map(s => `
+            <div style="background:#0f172a; border:1px solid #0284c7; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-size:0.9rem; font-weight:700; color:#fff;">${s.titulo}</div>
+                <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Cliente/Projeto: <b style="color:#38bdf8;">${s.projeto || 'Geral'}</b> | ${s.resumo}</div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn-new-task" style="padding:4px 10px; font-size:0.75rem;" onclick="discardSuggestion(${s.id})">✕ Descartar</button>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          box.style.display = 'none';
+        }
+      } catch (e) {}
+    }
+
+    function filterEmailsView(tipo) {
+      currentEmailFilter = tipo;
+      document.querySelectorAll('#section-emails .btn-clear-filters').forEach(b => {
+        b.style.background = '#334155';
+        b.style.color = '#cbd5e1';
+      });
+      if (tipo === 'pendentes') {
+        const b = document.getElementById('btn-filtro-pend');
+        if (b) { b.style.background = '#0284c7'; b.style.color = '#fff'; }
+      } else if (tipo === 'vinculados') {
+        const b = document.getElementById('btn-filtro-vinc');
+        if (b) { b.style.background = '#0284c7'; b.style.color = '#fff'; }
+      } else {
+        const b = document.getElementById('btn-filtro-todos');
+        if (b) { b.style.background = '#0284c7'; b.style.color = '#fff'; }
+      }
+      renderFilteredEmails();
+    }
+
+    function renderFilteredEmails() {
+      const container = document.getElementById('lista-emails');
+      if (!container) return;
+
+      let list = allEmailsData;
+      if (currentEmailFilter === 'pendentes') {
+        list = list.filter(m => m.precisa_resposta && !m.respondido);
+      } else if (currentEmailFilter === 'vinculados') {
+        list = list.filter(m => m.codigo_tarefa_vinculada);
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:30px;">Nenhuma mensagem nesta categoria.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(m => {
+        let slaBg = '#334155';
+        let slaColor = '#cbd5e1';
+        let slaLabel = m.sla_status;
+
+        if (m.respondido) {
+          slaBg = '#065f4630';
+          slaColor = '#4ade80';
+          slaLabel = '✅ Respondido';
+        } else if (m.horas_sem_resposta > 8.0) {
+          slaBg = '#ef444430';
+          slaColor = '#f87171';
+          slaLabel = `🔴 Crítico (${m.horas_sem_resposta}h)`;
+        } else if (m.horas_sem_resposta > 4.0) {
+          slaBg = '#f9731630';
+          slaColor = '#fb923c';
+          slaLabel = `🟠 Alerta (${m.horas_sem_resposta}h)`;
+        } else if (m.horas_sem_resposta > 2.0) {
+          slaBg = '#854d0e30';
+          slaColor = '#facc15';
+          slaLabel = `🟡 Atenção (${m.horas_sem_resposta}h)`;
+        }
+
+        const taskBadge = m.codigo_tarefa_vinculada ? 
+          `<span style="background:#0284c730; color:#38bdf8; border:1px solid #0284c7; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">🔗 Tarefa ${m.codigo_tarefa_vinculada}</span>` : '';
+
+        const respBtn = (!m.respondido) ? 
+          `<button class="btn-icon" style="font-size:0.75rem; padding:4px 10px; background:#22c55e20; border-color:#22c55e; color:#4ade80;" onclick="markEmailAsAnswered('${m.entry_id}')">Marcar Respondido ✓</button>` : '';
+
+        return `
+          <div style="background:var(--card-bg); border:1px solid var(--card-border); border-left: 4px solid ${slaColor}; border-radius:10px; padding:12px 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
+              <div>
+                <span style="font-size:0.7rem; color:#94a3b8; background:#0f172a; padding:2px 6px; border-radius:4px; border:1px solid #334155;">${m.conta || 'Outlook'}</span>
+                ${taskBadge}
+                <span style="background:${slaBg}; color:${slaColor}; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; margin-left:4px;">${slaLabel}</span>
+              </div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">${m.data_recebimento}</div>
+            </div>
+            <div style="font-size:0.92rem; font-weight:700; color:#fff; margin-bottom:4px;">${m.assunto}</div>
+            <div style="font-size:0.78rem; color:#38bdf8; margin-bottom:6px;">👤 ${m.remetente} &lt;${m.remetente_email}&gt;</div>
+            <div style="font-size:0.78rem; color:var(--text-muted); line-height:1.4; margin-bottom:8px; background:#0f172a; padding:8px 10px; border-radius:6px;">
+              ${m.corpo_resumo || '(Sem conteúdo prévio)'}
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+              ${respBtn}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function scanOutlookNow() {
+      const btn = document.getElementById('btn-scan-outlook');
+      if (btn) { btn.innerText = '⏳ Varrendo Outlook...'; btn.disabled = true; }
+      try {
+        const res = await fetch('/api/emails/scan', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ horas: 72 }) });
+        const d = await res.json();
+        showToast('✅ Varredura do Outlook concluída!');
+        await loadEmailsData();
+        await checkEmailAlerts();
+      } catch (e) {
+        showToast('⚠️ Erro ao varrer: ' + e.message);
+      } finally {
+        if (btn) { btn.innerText = '🔍 Varrer Outlook Agora'; btn.disabled = false; }
+      }
+    }
+
+    async function markEmailAsAnswered(entryId) {
+      try {
+        await fetch('/api/emails/responder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ entry_id: entryId })
+        });
+        showToast('✅ Marcado como respondido!');
+        await loadEmailsData();
+        await checkEmailAlerts();
+      } catch (e) {
+        showToast('Erro: ' + e.message);
+      }
+    }
+
+    async function discardSuggestion(sugId) {
+      try {
+        await fetch('/api/emails/sugestoes/descartar', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ id: sugId })
+        });
+        showToast('Sugestão descartada.');
+        await loadSugestoesTarefas();
+      } catch (e) {}
+    }
+
       await loadTasks();
       await loadProjetos();
+      await checkEmailAlerts();
       setInterval(updateConnectionStatusBadge, 15000);
+      setInterval(checkEmailAlerts, 30000);
     });
   </script>
 </body>
